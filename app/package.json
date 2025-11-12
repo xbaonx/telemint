@@ -18,7 +18,8 @@
     "@ton/core": "^0.56.0",
     "@ton/crypto": "^3.2.0",
     "web3.storage": "^4.5.5",
-    "lucide-react": "^0.294.0"
+    "lucide-react": "^0.294.0",
+    "buffer": "^6.0.3"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",

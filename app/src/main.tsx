@@ -1,3 +1,4 @@
+import './shims/buffer';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
