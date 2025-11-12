@@ -3,8 +3,9 @@
  * Build mint payload and send transaction via TON Connect
  */
 
-import { Address, beginCell, Cell, toNano } from '@ton/core';
+import { Address, beginCell, toNano } from '@ton/core';
 import { useTonConnectUI } from '@tonconnect/ui-react';
+import type { SendTransactionResponse } from '@tonconnect/ui-react';
 
 const COLLECTION_ADDRESS = import.meta.env.VITE_TON_COLLECTION_ADDRESS;
 const MINT_PRICE_NANOTON = import.meta.env.VITE_MINT_PRICE_NANOTON || '1000000000';
@@ -46,7 +47,7 @@ export async function sendMintTransaction(
   tonConnectUI: ReturnType<typeof useTonConnectUI>[0],
   toAddress: string,
   metadataUri: string
-): Promise<void> {
+): Promise<SendTransactionResponse> {
   if (!COLLECTION_ADDRESS) {
     throw new Error('Collection address not configured');
   }
@@ -79,7 +80,7 @@ export async function sendMintTransaction(
   try {
     const result = await tonConnectUI.sendTransaction(transaction);
     console.log('✅ Transaction sent:', result);
-    return result;
+    return result as SendTransactionResponse;
   } catch (error: any) {
     console.error('❌ Transaction failed:', error);
     

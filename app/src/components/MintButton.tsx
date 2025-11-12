@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
+import type { SendTransactionResponse } from '@tonconnect/ui-react';
 import { sendMintTransaction, formatNanoTon } from '../lib/ton';
 import { telegram } from '../lib/telegram';
 
@@ -43,7 +44,7 @@ export function MintButton({
       });
 
       // Send mint transaction
-      const result = await sendMintTransaction(
+      const result: SendTransactionResponse = await sendMintTransaction(
         tonConnectUI,
         userAddress,
         metadataUri
@@ -51,8 +52,9 @@ export function MintButton({
 
       telegram.haptic('success');
       
-      // Extract tx hash from result
-      const txHash = result?.boc || 'unknown';
+      // Extract tx hash/BOC from result if available
+      // Some wallets return `boc` in the response; fallback to a placeholder string
+      const txHash = (result as any)?.boc || 'submitted';
       onSuccess(txHash);
     } catch (error: any) {
       console.error('❌ Mint failed:', error);
