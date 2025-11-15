@@ -97,7 +97,7 @@ function App() {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-3xl font-bold text-gray-800">
-              🎨 Mint Your NFT
+              Mint Box
             </h1>
             <TonConnectButton />
           </div>
