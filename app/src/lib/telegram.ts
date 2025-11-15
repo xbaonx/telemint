@@ -173,8 +173,18 @@ class TelegramService {
   showAlert(message: string, callback?: () => void) {
     if (this.webApp) {
       try {
-        this.webApp.showAlert(message, callback);
-      } catch {
+        // Giải quyết lỗi showAlert không hỗ trợ trong WebApp 6.0
+        if (this.webApp.version && parseInt(this.webApp.version.split('.')[0]) >= 6) {
+          // Với WebApp 6.0+, dùng native alert
+          console.log('[Telegram] Using native alert for WebApp 6.0+');
+          alert(message);
+          callback?.();
+        } else {
+          // Với các phiên bản cũ hơn
+          this.webApp.showAlert(message, callback);
+        }
+      } catch (error) {
+        console.error('[Telegram] Alert error:', error);
         alert(message);
         callback?.();
       }
@@ -190,8 +200,17 @@ class TelegramService {
   showConfirm(message: string, callback?: (confirmed: boolean) => void) {
     if (this.webApp) {
       try {
-        this.webApp.showConfirm(message, callback);
-      } catch {
+        // Kiểm tra phiên bản WebApp 6.0+
+        if (this.webApp.version && parseInt(this.webApp.version.split('.')[0]) >= 6) {
+          // Với WebApp 6.0+, dùng native confirm
+          console.log('[Telegram] Using native confirm for WebApp 6.0+');
+          const confirmed = confirm(message);
+          callback?.(confirmed);
+        } else {
+          this.webApp.showConfirm(message, callback);
+        }
+      } catch (error) {
+        console.error('[Telegram] Confirm error:', error);
         const confirmed = confirm(message);
         callback?.(confirmed);
       }

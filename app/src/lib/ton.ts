@@ -78,9 +78,9 @@ export async function sendMintTransaction(
   };
 
   try {
-    // Thêm promise timeout 30s để tránh trường hợp treo vô tận
+    // Thêm promise timeout 45s để tránh trường hợp treo vô tận
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Transaction timed out after 30s')), 30000);
+      setTimeout(() => reject(new Error('Transaction timed out after 45s')), 45000);
     });
     
     // Race giữa gọi transaction và timeout
