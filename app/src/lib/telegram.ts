@@ -172,7 +172,12 @@ class TelegramService {
    */
   showAlert(message: string, callback?: () => void) {
     if (this.webApp) {
-      this.webApp.showAlert(message, callback);
+      try {
+        this.webApp.showAlert(message, callback);
+      } catch {
+        alert(message);
+        callback?.();
+      }
     } else {
       alert(message);
       callback?.();
@@ -184,7 +189,12 @@ class TelegramService {
    */
   showConfirm(message: string, callback?: (confirmed: boolean) => void) {
     if (this.webApp) {
-      this.webApp.showConfirm(message, callback);
+      try {
+        this.webApp.showConfirm(message, callback);
+      } catch {
+        const confirmed = confirm(message);
+        callback?.(confirmed);
+      }
     } else {
       const confirmed = confirm(message);
       callback?.(confirmed);
@@ -196,12 +206,13 @@ class TelegramService {
    */
   haptic(type: 'light' | 'medium' | 'heavy' | 'success' | 'error' | 'warning') {
     if (!this.webApp?.HapticFeedback) return;
-
-    if (type === 'success' || type === 'error' || type === 'warning') {
-      this.webApp.HapticFeedback.notificationOccurred(type);
-    } else {
-      this.webApp.HapticFeedback.impactOccurred(type);
-    }
+    try {
+      if (type === 'success' || type === 'error' || type === 'warning') {
+        this.webApp.HapticFeedback.notificationOccurred(type);
+      } else {
+        this.webApp.HapticFeedback.impactOccurred(type);
+      }
+    } catch {}
   }
 
   /**

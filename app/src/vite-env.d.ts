@@ -8,6 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_WEB3STORAGE_TOKEN: string;
   readonly VITE_IPFS_PROVIDER?: 'web3' | 'nft';
   readonly VITE_NFT_STORAGE_TOKEN?: string;
+  readonly VITE_PINATA_JWT?: string;
   readonly VITE_NETWORK: 'testnet' | 'mainnet';
 }
 

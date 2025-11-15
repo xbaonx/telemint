@@ -6,14 +6,18 @@ import { Web3Storage } from 'web3.storage';
 import { NFTStorage } from 'nft.storage';
 
 const WEB3STORAGE_TOKEN = import.meta.env.VITE_WEB3STORAGE_TOKEN;
-const IPFS_PROVIDER = (import.meta.env.VITE_IPFS_PROVIDER || 'web3') as 'web3' | 'nft';
+const IPFS_PROVIDER = (import.meta.env.VITE_IPFS_PROVIDER || 'web3') as 'web3' | 'nft' | 'pinata';
 const NFT_STORAGE_TOKEN = import.meta.env.VITE_NFT_STORAGE_TOKEN as string | undefined;
+const PINATA_JWT = import.meta.env.VITE_PINATA_JWT as string | undefined;
 
 if (IPFS_PROVIDER === 'web3' && !WEB3STORAGE_TOKEN) {
   console.warn('⚠️ VITE_WEB3STORAGE_TOKEN not set in .env');
 }
 if (IPFS_PROVIDER === 'nft' && !NFT_STORAGE_TOKEN) {
   console.warn('⚠️ VITE_NFT_STORAGE_TOKEN not set in .env');
+}
+if (IPFS_PROVIDER === 'pinata' && !PINATA_JWT) {
+  console.warn('⚠️ VITE_PINATA_JWT not set in .env');
 }
 
 /**
@@ -64,6 +68,28 @@ async function uploadFile(file: File): Promise<string> {
     const client = getNftClient();
     const cid = await client.storeBlob(file);
     return cid;
+  } else if (IPFS_PROVIDER === 'pinata') {
+    if (!PINATA_JWT) {
+      throw new Error('Pinata JWT not configured');
+    }
+    const form = new FormData();
+    form.append('file', file, file.name);
+
+    const res = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${PINATA_JWT}`,
+      },
+      body: form,
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error(`Pinata upload failed: ${res.status} ${txt}`);
+    }
+    const json = await res.json();
+    const cid = json?.IpfsHash as string;
+    if (!cid) throw new Error('Pinata response missing IpfsHash');
+    return cid;
   } else {
     const client = getWeb3Client();
     const cid = await client.put([file], {
@@ -85,6 +111,26 @@ async function uploadMetadata(metadata: NFTMetadata): Promise<string> {
   if (IPFS_PROVIDER === 'nft') {
     const client = getNftClient();
     const cid = await client.storeBlob(new Blob([metadataJson], { type: 'application/json' }));
+    return cid;
+  } else if (IPFS_PROVIDER === 'pinata') {
+    if (!PINATA_JWT) {
+      throw new Error('Pinata JWT not configured');
+    }
+    const res = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${PINATA_JWT}`,
+      },
+      body: metadataJson,
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error(`Pinata metadata upload failed: ${res.status} ${txt}`);
+    }
+    const json = await res.json();
+    const cid = json?.IpfsHash as string;
+    if (!cid) throw new Error('Pinata response missing IpfsHash');
     return cid;
   } else {
     const client = getWeb3Client();
