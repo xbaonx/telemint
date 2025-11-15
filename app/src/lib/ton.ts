@@ -105,7 +105,7 @@ export async function sendMintTransaction(
 
   // Get on-chain mint fee and add overhead
   const onchainFee = await getMintFeeOnChain(COLLECTION_ADDRESS);
-  const MINT_OVERHEAD_NANOTON = 350000000n; // 0.35 TON
+  const MINT_OVERHEAD_NANOTON = 360000000n; // 0.36 TON (extra buffer for inbound fwd fee)
   const amount = (onchainFee + MINT_OVERHEAD_NANOTON).toString();
 
   console.log('📤 Sending mint transaction:', {

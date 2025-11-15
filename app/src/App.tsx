@@ -141,9 +141,9 @@ function App() {
       }
       const payload = buildMintPayload(userAddress, metadataUri);
       const send = (window as any).debugSend;
-      // Đọc mint fee on-chain và cộng overhead 0.35 TON
+      // Đọc mint fee on-chain và cộng overhead 0.36 TON
       const onchainFee = await getMintFeeOnChain(collectionAddress);
-      const overhead = 350000000n;
+      const overhead = 360000000n;
       const totalNano = onchainFee + overhead;
       const amountTon = (Number(totalNano) / 1_000_000_000).toFixed(2);
       if (typeof send === 'function') {
