@@ -25,8 +25,9 @@ export function buildMintPayload(toAddress: string, metadataUri: string): string
       .endCell();
 
     // Build main message body
-    // Mint message: to Address + content Cell
+    // Mint message: op=0x01 + to Address + content Cell
     const messageBody = beginCell()
+      .storeUint(0x01, 32) // Operation code for minting NFT (thêm mã op)
       .storeAddress(to)
       .storeRef(contentCell)
       .endCell();
@@ -118,7 +119,7 @@ export async function sendMintTransaction(
     console.error('❌ Transaction failed:', error);
     
     // Phân loại lỗi chi tiết hơn
-    if (error.message?.includes('user reject')) {
+    if (error.message?.includes('user reject') || error.message?.includes('declined')) {
       throw new Error('Transaction rejected by user');
     } else if (error.message?.includes('timeout')) {
       throw new Error('Transaction request timed out. Please try again.');
@@ -126,10 +127,22 @@ export async function sendMintTransaction(
       throw new Error('Network issue. Check your connection and try again.');
     } else if (error.message?.includes('insufficient') || error.message?.includes('balance')) {
       throw new Error('Insufficient balance to complete transaction.');
+    } else if (error.message?.includes('contains errors') || error.message?.includes('BadRequestError')) {
+      // Xử lý riêng cho lỗi BadRequestError
+      console.error('❌ BadRequestError details:', error);
+      
+      // Kiểm tra xem có phải là lỗi format payload
+      if (error.message?.includes('payload')) {
+        throw new Error('Invalid transaction format. Please try again later.');
+      } else if (error.message?.includes('wallet')) {
+        throw new Error('Wallet communication error. Please reconnect your wallet.');
+      } else {
+        throw new Error('Request contains errors. Please try again later.');
+      }
     }
     
     // Log chi tiết hơn
-    console.error('🛑 Detailed error:', JSON.stringify(error, null, 2));
+    console.error('🛑 Detailed error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     throw new Error('Transaction failed. Please try again.');
   }
 }
