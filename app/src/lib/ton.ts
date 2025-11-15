@@ -24,14 +24,10 @@ export function buildMintPayload(toAddress: string, metadataUri: string): string
       .storeStringTail(metadataUri) // IPFS URI as string
       .endCell();
 
-    // Build main message body - Đảm bảo đúng thứ tự và format
-    // Theo nhiều implementation collection: op=1 + query_id:uint64 + new_owner:address + ref(content)
-    const queryId = (BigInt(Date.now()) & ((BigInt(1) << BigInt(64)) - BigInt(1)));
+    // Build main message body theo NftCollection.tact: Mint{ to: Address; content: Cell }
     const messageBody = beginCell()
-      .storeUint(1, 32)            // operation code for mint
-      .storeUint(queryId, 64)      // query_id
-      .storeAddress(to)            // new owner
-      .storeRef(contentCell)       // content cell (off-chain URI)
+      .storeAddress(to)
+      .storeRef(contentCell)
       .endCell();
 
     // Convert to base64 for TON Connect
@@ -59,8 +55,9 @@ export async function sendMintTransaction(
   // Build payload
   const payload = buildMintPayload(toAddress, metadataUri);
 
-  // Calculate amount: mint fee + buffer
-  const amount = MINT_PRICE_NANOTON;
+  // Calculate amount: mint fee + DEPLOY_ITEM_VALUE (0.3 TON) + GAS_BUFFER (0.05 TON)
+  const MINT_OVERHEAD_NANOTON = 350000000n; // 0.35 TON
+  const amount = (BigInt(MINT_PRICE_NANOTON) + MINT_OVERHEAD_NANOTON).toString();
 
   console.log('📤 Sending mint transaction:', {
     collection: COLLECTION_ADDRESS,
