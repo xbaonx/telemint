@@ -241,3 +241,38 @@ export function parseTonAmount(ton: string): string {
     throw new Error('Invalid TON amount');
   }
 }
+
+/**
+ * Register debug helpers on window for diagnosis.
+ * Usage in console:
+ *   debugTonTransfer('<your_address>', '0.01')
+ */
+export function registerDebugHelpers(
+  tonConnectUI: ReturnType<typeof useTonConnectUI>[0],
+  defaultTo?: string
+) {
+  try {
+    (window as any).debugTonTransfer = async (
+      to: string = defaultTo || '',
+      amountTon: string = '0.01'
+    ) => {
+      if (!to) throw new Error('Provide recipient address to debugTonTransfer(to, amountTon)');
+      const tx = {
+        validUntil: Math.floor(Date.now() / 1000) + 180,
+        messages: [
+          {
+            address: to,
+            amount: toNano(amountTon).toString(),
+          },
+        ],
+      };
+      console.log('🧪 Debug transfer transaction:', tx);
+      const res = await tonConnectUI.sendTransaction(tx);
+      console.log('🧪 Debug transfer result:', res);
+      return res;
+    };
+    console.log('🧪 Registered debugTonTransfer(to, amountTon) on window');
+  } catch (e) {
+    console.error('Failed to register debug helpers:', e);
+  }
+}

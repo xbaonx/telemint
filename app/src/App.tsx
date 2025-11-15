@@ -1,17 +1,18 @@
-import { useState } from 'react';
-import { TonConnectButton, useTonAddress } from '@tonconnect/ui-react';
+import { useEffect, useState } from 'react';
+import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { Wallet } from 'lucide-react';
 import { UploadCard } from './components/UploadCard';
 import { MintButton } from './components/MintButton';
 import { SuccessSheet } from './components/SuccessSheet';
 import { uploadToIPFS } from './lib/ipfs';
-import { getMintPriceNanoton, formatAddress } from './lib/ton';
+import { getMintPriceNanoton, formatAddress, registerDebugHelpers } from './lib/ton';
 import { telegram } from './lib/telegram';
 
 type AppState = 'idle' | 'uploading' | 'ready' | 'minting' | 'success';
 
 function App() {
   const userAddress = useTonAddress();
+  const [tonConnectUI] = useTonConnectUI();
   const [state, setState] = useState<AppState>('idle');
 
   // File state
@@ -27,6 +28,10 @@ function App() {
   const [txHash, setTxHash] = useState<string>('');
 
   const mintPrice = getMintPriceNanoton();
+
+  useEffect(() => {
+    registerDebugHelpers(tonConnectUI, userAddress);
+  }, [tonConnectUI, userAddress]);
 
   // Handle file selection
   const handleFileSelected = (file: File) => {
