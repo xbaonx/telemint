@@ -20,6 +20,15 @@ if (IPFS_PROVIDER === 'pinata' && !PINATA_JWT) {
   console.warn('⚠️ VITE_PINATA_JWT not set in .env');
 }
 
+// Debug provider selection (do not print secrets)
+try {
+  console.log('🧩 IPFS provider selected:', IPFS_PROVIDER, {
+    web3Token: !!WEB3STORAGE_TOKEN,
+    nftToken: !!NFT_STORAGE_TOKEN,
+    pinataJwt: !!PINATA_JWT,
+  });
+} catch {}
+
 /**
  * NFT Metadata structure
  */
@@ -64,9 +73,18 @@ function getNftClient(): NFTStorage {
  * Upload file to IPFS
  */
 async function uploadFile(file: File): Promise<string> {
+  const t0 = performance.now?.() ?? Date.now();
+  console.log('⬆️  IPFS uploadFile start', {
+    provider: IPFS_PROVIDER,
+    name: file.name,
+    size: file.size,
+    type: file.type,
+  });
   if (IPFS_PROVIDER === 'nft') {
     const client = getNftClient();
     const cid = await client.storeBlob(file);
+    const t1 = performance.now?.() ?? Date.now();
+    console.log('✅ IPFS uploadFile (nft.storage) done', { cid, ms: Math.round(t1 - t0) });
     return cid;
   } else if (IPFS_PROVIDER === 'pinata') {
     if (!PINATA_JWT) {
@@ -89,6 +107,8 @@ async function uploadFile(file: File): Promise<string> {
     const json = await res.json();
     const cid = json?.IpfsHash as string;
     if (!cid) throw new Error('Pinata response missing IpfsHash');
+    const t1 = performance.now?.() ?? Date.now();
+    console.log('✅ IPFS uploadFile (pinata) done', { cid, ms: Math.round(t1 - t0) });
     return cid;
   } else {
     const client = getWeb3Client();
@@ -96,6 +116,8 @@ async function uploadFile(file: File): Promise<string> {
       wrapWithDirectory: false,
       name: file.name,
     });
+    const t1 = performance.now?.() ?? Date.now();
+    console.log('✅ IPFS uploadFile (web3.storage) done', { cid, ms: Math.round(t1 - t0) });
     return cid;
   }
 }
@@ -108,9 +130,16 @@ async function uploadMetadata(metadata: NFTMetadata): Promise<string> {
   const metadataFile = new File([metadataJson], 'metadata.json', {
     type: 'application/json',
   });
+  const t0 = performance.now?.() ?? Date.now();
+  console.log('⬆️  IPFS uploadMetadata start', {
+    provider: IPFS_PROVIDER,
+    bytes: metadataJson.length,
+  });
   if (IPFS_PROVIDER === 'nft') {
     const client = getNftClient();
     const cid = await client.storeBlob(new Blob([metadataJson], { type: 'application/json' }));
+    const t1 = performance.now?.() ?? Date.now();
+    console.log('✅ IPFS uploadMetadata (nft.storage) done', { cid, ms: Math.round(t1 - t0) });
     return cid;
   } else if (IPFS_PROVIDER === 'pinata') {
     if (!PINATA_JWT) {
@@ -131,6 +160,8 @@ async function uploadMetadata(metadata: NFTMetadata): Promise<string> {
     const json = await res.json();
     const cid = json?.IpfsHash as string;
     if (!cid) throw new Error('Pinata response missing IpfsHash');
+    const t1 = performance.now?.() ?? Date.now();
+    console.log('✅ IPFS uploadMetadata (pinata) done', { cid, ms: Math.round(t1 - t0) });
     return cid;
   } else {
     const client = getWeb3Client();
@@ -138,6 +169,8 @@ async function uploadMetadata(metadata: NFTMetadata): Promise<string> {
       wrapWithDirectory: false,
       name: 'metadata.json',
     });
+    const t1 = performance.now?.() ?? Date.now();
+    console.log('✅ IPFS uploadMetadata (web3.storage) done', { cid, ms: Math.round(t1 - t0) });
     return cid;
   }
 }
@@ -152,6 +185,8 @@ export async function uploadToIPFS(
   description?: string
 ): Promise<UploadResult> {
   try {
+    const tAll0 = performance.now?.() ?? Date.now();
+    console.log('🧪 IPFS flow start');
     // 1. Upload image
     console.log('📤 Uploading image to IPFS...');
     const imageCid = await uploadFile(file);
@@ -170,6 +205,9 @@ export async function uploadToIPFS(
     const metadataCid = await uploadMetadata(metadata);
     const metadataUri = `ipfs://${metadataCid}`;
     console.log('✅ Metadata uploaded:', metadataUri);
+
+    const tAll1 = performance.now?.() ?? Date.now();
+    console.log('🏁 IPFS flow done', { ms: Math.round(tAll1 - tAll0) });
 
     return {
       imageUri,
