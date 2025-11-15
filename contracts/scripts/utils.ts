@@ -1,11 +1,16 @@
-import { TonClient, Address, WalletContractV4, internal, fromNano, toNano } from '@ton/ton';
+import { TonClient, Address, WalletContractV4, WalletContractV5R1, internal, fromNano, toNano } from '@ton/ton';
 import { getHttpEndpoint } from '@orbs-network/ton-access';
 import { mnemonicToPrivateKey } from '@ton/crypto';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
+
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Get TON client for testnet or mainnet
@@ -45,6 +50,7 @@ export async function getWallet(mnemonic: string, testnet: boolean = true) {
 
     // Build candidates
     const candidates: { label: string; wallet: any }[] = [
+        { label: 'V5R1', wallet: WalletContractV5R1.create({ workchain, publicKey: keyPair.publicKey }) },
         { label: 'V4R2 (default walletId)', wallet: WalletContractV4.create({ workchain, publicKey: keyPair.publicKey }) },
         { label: 'V4R2 (walletId=0)', wallet: WalletContractV4.create({ workchain, publicKey: keyPair.publicKey, walletId: 0 }) },
     ];
@@ -73,7 +79,7 @@ export async function getWallet(mnemonic: string, testnet: boolean = true) {
     let chosenIdx = balances.reduce((best, cur) => (cur.bal > balances[best].bal ? cur.idx : best), 0 as number);
     const chosen = candidates[chosenIdx];
     if (balances[chosenIdx].bal === 0n) {
-        console.log('⚠️  All variants show 0 TON. Defaulting to V4R2 (default walletId).');
+        console.log('⚠️  All variants show 0 TON. Defaulting to V5R1.');
         chosenIdx = 0;
     }
 

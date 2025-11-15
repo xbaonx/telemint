@@ -3,11 +3,17 @@
  */
 
 import { Web3Storage } from 'web3.storage';
+import { NFTStorage } from 'nft.storage';
 
 const WEB3STORAGE_TOKEN = import.meta.env.VITE_WEB3STORAGE_TOKEN;
+const IPFS_PROVIDER = (import.meta.env.VITE_IPFS_PROVIDER || 'web3') as 'web3' | 'nft';
+const NFT_STORAGE_TOKEN = import.meta.env.VITE_NFT_STORAGE_TOKEN as string | undefined;
 
-if (!WEB3STORAGE_TOKEN) {
+if (IPFS_PROVIDER === 'web3' && !WEB3STORAGE_TOKEN) {
   console.warn('⚠️ VITE_WEB3STORAGE_TOKEN not set in .env');
+}
+if (IPFS_PROVIDER === 'nft' && !NFT_STORAGE_TOKEN) {
+  console.warn('⚠️ VITE_NFT_STORAGE_TOKEN not set in .env');
 }
 
 /**
@@ -36,41 +42,58 @@ export interface UploadResult {
 /**
  * Get Web3Storage client
  */
-function getClient(): Web3Storage {
+function getWeb3Client(): Web3Storage {
   if (!WEB3STORAGE_TOKEN) {
     throw new Error('Web3.Storage token not configured');
   }
   return new Web3Storage({ token: WEB3STORAGE_TOKEN });
 }
 
+function getNftClient(): NFTStorage {
+  if (!NFT_STORAGE_TOKEN) {
+    throw new Error('NFT.Storage token not configured');
+  }
+  return new NFTStorage({ token: NFT_STORAGE_TOKEN });
+}
+
 /**
  * Upload file to IPFS
  */
 async function uploadFile(file: File): Promise<string> {
-  const client = getClient();
-  const cid = await client.put([file], {
-    wrapWithDirectory: false,
-    name: file.name,
-  });
-  return cid;
+  if (IPFS_PROVIDER === 'nft') {
+    const client = getNftClient();
+    const cid = await client.storeBlob(file);
+    return cid;
+  } else {
+    const client = getWeb3Client();
+    const cid = await client.put([file], {
+      wrapWithDirectory: false,
+      name: file.name,
+    });
+    return cid;
+  }
 }
 
 /**
  * Create and upload metadata JSON
  */
 async function uploadMetadata(metadata: NFTMetadata): Promise<string> {
-  const client = getClient();
   const metadataJson = JSON.stringify(metadata, null, 2);
   const metadataFile = new File([metadataJson], 'metadata.json', {
     type: 'application/json',
   });
-
-  const cid = await client.put([metadataFile], {
-    wrapWithDirectory: false,
-    name: 'metadata.json',
-  });
-
-  return cid;
+  if (IPFS_PROVIDER === 'nft') {
+    const client = getNftClient();
+    const cid = await client.storeBlob(new Blob([metadataJson], { type: 'application/json' }));
+    return cid;
+  } else {
+    const client = getWeb3Client();
+    const cid = await client.put([metadataFile], {
+      wrapWithDirectory: false,
+      name: 'metadata.json',
+    });
+    return cid;
+  }
 }
 
 /**
@@ -108,9 +131,13 @@ export async function uploadToIPFS(
       imageCid,
       metadataCid,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ IPFS upload failed:', error);
-    throw new Error('Failed to upload to IPFS. Please check your web3.storage token.');
+    const msg = typeof error?.message === 'string' ? error.message : '';
+    if (msg.includes('503') || msg.toLowerCase().includes('maintenance')) {
+      throw new Error('Failed to upload to IPFS (service unavailable). Please try again later.');
+    }
+    throw new Error('Failed to upload to IPFS. Please check your token and network.');
   }
 }
 

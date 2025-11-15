@@ -23,7 +23,7 @@ dotenv.config();
 /**
  * Deploy NftCollection contract
  */
-async function deploy(fee: string, testnet: boolean) {
+async function deploy(fee: string, testnet: boolean, ownerOverride?: string) {
     console.log(chalk.blue('🚀 Deploying NftCollection...\n'));
 
     // Load mnemonic from env
@@ -49,24 +49,32 @@ async function deploy(fee: string, testnet: boolean) {
         (Cell as any).fromHex = (hex: string) => Cell.fromBoc(Buffer.from(hex, 'hex'))[0];
     }
 
-    // Load NftItem code cell from .code.boc
-    const itemCodeBocPath = path.resolve(__dirname, '../build/NftCollection_NftItem.code.boc');
+    // Load NftItem code cell from .code.boc (support both old and new tact outputs)
+    const itemCodePathOld = path.resolve(__dirname, '../build/NftCollection_NftItem.code.boc');
+    const itemCodePathNew = path.resolve(__dirname, '../build/NftCollection.tact_NftItem.code.boc');
+    const itemCodeBocPath = fs.existsSync(itemCodePathOld) ? itemCodePathOld : itemCodePathNew;
     if (!fs.existsSync(itemCodeBocPath)) {
         throw new Error(`Build artifact not found: ${itemCodeBocPath}`);
     }
     const itemCodeBoc = fs.readFileSync(itemCodeBocPath);
     const itemCode = Cell.fromBoc(itemCodeBoc)[0];
     console.log(chalk.gray(`   NftItem code loaded`));
-    // Load NftCollection factory from generated TS
-    const NftCollectionModule = await import('../build/NftCollection_NftCollection.ts');
+    // Load NftCollection factory from generated TS (support both output names)
+    const modulePathOld = path.resolve(__dirname, '../build/NftCollection_NftCollection.ts');
+    const modulePathNew = path.resolve(__dirname, '../build/NftCollection.tact_NftCollection.ts');
+    const modulePath = fs.existsSync(modulePathOld) ? modulePathOld : modulePathNew;
+    const NftCollectionModule = await import(modulePath);
 
     // Parse mint fee
     const mintFee = toNano(fee);
     console.log(chalk.gray(`   Mint Fee: ${formatTon(mintFee)} TON`));
 
+    // Determine owner address (override if provided)
+    const ownerAddress = ownerOverride ? Address.parse(ownerOverride) : walletAddress;
+
     // Create collection contract instance
     const collection = await NftCollectionModule.NftCollection.fromInit(
-        walletAddress,
+        ownerAddress,
         itemCode,
         mintFee
     );
@@ -74,6 +82,7 @@ async function deploy(fee: string, testnet: boolean) {
     const collectionAddress = collection.address;
     console.log(chalk.green(`\n📍 Collection Address: ${collectionAddress.toString()}`));
     console.log(chalk.gray(`   Network: ${testnet ? 'Testnet' : 'Mainnet'}`));
+    console.log(chalk.gray(`   Owner:   ${ownerAddress.toString()}`));
 
     // Check if already deployed
     const state = await client.getContractState(collectionAddress);
@@ -151,9 +160,10 @@ program
     .description('Deploy NftCollection contract to TON blockchain')
     .option('--fee <amount>', 'Initial mint fee in TON', '1')
     .option('--mainnet', 'Deploy to mainnet (default: testnet)', false)
+    .option('--owner <address>', 'Override owner address for the collection (defaults to deployer wallet address)')
     .action(async (options) => {
         try {
-            await deploy(options.fee, !options.mainnet);
+            await deploy(options.fee, !options.mainnet, options.owner);
         } catch (error) {
             console.error(chalk.red('\n❌ Deployment failed:'), error);
             process.exit(1);
