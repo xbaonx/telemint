@@ -78,9 +78,32 @@ export async function sendMintTransaction(
   };
 
   try {
-    // Thêm promise timeout 45s để tránh trường hợp treo vô tận
+    // Kiểm tra xem đã kết nối ví TON chưa
+    if (!tonConnectUI.connected) {
+      console.log('🔗 Không có kết nối ví, đang kết nối...');
+      // Thông báo cho người dùng
+      alert('Connecting to TON wallet...');
+      
+      // Chờ để kết nối ví hoàn tất trước khi gửi giao dịch
+      try {
+        await tonConnectUI.connectWallet();
+        console.log('✅ Đã kết nối ví TON thành công');
+      } catch (connError) {
+        console.error('❌ Lỗi kết nối ví:', connError);
+        throw new Error('Could not connect to TON wallet. Please try again.');
+      }
+    }
+    
+    // Kiểm tra lại kết nối
+    if (!tonConnectUI.connected) {
+      throw new Error('Wallet connection required');
+    }
+    
+    console.log('💰 Sending to wallet for approval...');
+
+    // Thêm promise timeout 60s (tăng lên so với 45s trước đó)
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Transaction timed out after 45s')), 45000);
+      setTimeout(() => reject(new Error('Transaction approval timed out after 60s')), 60000);
     });
     
     // Race giữa gọi transaction và timeout

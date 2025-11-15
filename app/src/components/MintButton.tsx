@@ -38,10 +38,18 @@ export function MintButton({
       setIsMinting(true);
       telegram.haptic('medium');
 
-      console.log('🎨 Minting NFT...', {
+      // Thông báo rõ ràng hơn về quá trình mint
+      console.log('🎨 Preparing NFT mint...', {
         to: userAddress,
         metadataUri,
       });
+
+      // Thông báo cho người dùng cần mở ví TON để phê duyệt
+      alert(
+        'To mint an NFT, please approve the transaction in your TON wallet.\n\n' +
+        'If you don\'t see the wallet open, check your browser settings ' +
+        'and allow popups or external windows.'
+      );
 
       // Send mint transaction
       const result: SendTransactionResponse = await sendMintTransaction(
@@ -56,6 +64,9 @@ export function MintButton({
       // Some wallets return `boc` in the response; fallback to a placeholder string
       const txHash = (result as any)?.boc || 'submitted';
       onSuccess(txHash);
+      
+      // Thông báo thành công
+      alert('NFT successfully minted! It will appear in your wallet soon.');
     } catch (error: any) {
       console.error('❌ Mint failed:', error);
       telegram.haptic('error');
