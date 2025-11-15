@@ -25,11 +25,13 @@ export function buildMintPayload(toAddress: string, metadataUri: string): string
       .endCell();
 
     // Build main message body - Đảm bảo đúng thứ tự và format
-    // Chỉ sử dụng cấu trúc đơn giản: op=1 + address
+    // Theo nhiều implementation collection: op=1 + query_id:uint64 + new_owner:address + ref(content)
+    const queryId = (BigInt(Date.now()) & ((BigInt(1) << BigInt(64)) - BigInt(1)));
     const messageBody = beginCell()
-      .storeUint(1, 32) // Sử dụng giá trị chỉ là 1, không dùng hex (0x01)
-      .storeAddress(to) 
-      .storeRef(contentCell)
+      .storeUint(1, 32)            // operation code for mint
+      .storeUint(queryId, 64)      // query_id
+      .storeAddress(to)            // new owner
+      .storeRef(contentCell)       // content cell (off-chain URI)
       .endCell();
 
     // Convert to base64 for TON Connect
