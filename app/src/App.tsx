@@ -33,6 +33,27 @@ function App() {
     registerDebugHelpers(tonConnectUI, userAddress);
   }, [tonConnectUI, userAddress]);
 
+  const debugMode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debug') === '1';
+
+  const handleDebugTransferClick = async () => {
+    try {
+      if (!userAddress) {
+        alert('Hãy kết nối ví trước khi chạy debug transfer');
+        return;
+      }
+      const fn = (window as any).debugTonTransfer;
+      if (typeof fn !== 'function') {
+        alert('debugTonTransfer chưa sẵn sàng');
+        return;
+      }
+      await fn(userAddress, '0.01');
+      alert('Đã gửi yêu cầu chuyển 0.01 TON, hãy xác nhận trong ví.');
+    } catch (e: any) {
+      console.error('Debug transfer error:', e);
+      alert(e?.message || 'Debug transfer failed');
+    }
+  };
+
   // Handle file selection
   const handleFileSelected = (file: File) => {
     setSelectedFile(file);
@@ -120,6 +141,19 @@ function App() {
           <SuccessSheet txHash={txHash} onReset={handleReset} />
         ) : (
           <div className="space-y-4">
+            {/* Debug tools */}
+            {debugMode && (
+              <div className="card border-dashed">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-gray-700">
+                    Debug: Gửi giao dịch thử 0.01 TON tới địa chỉ ví đang kết nối để kiểm tra xác minh ví.
+                  </p>
+                  <button onClick={handleDebugTransferClick} className="btn-secondary whitespace-nowrap">
+                    Run Debug Transfer
+                  </button>
+                </div>
+              </div>
+            )}
             {/* Upload Card */}
             <UploadCard
               onFileSelected={handleFileSelected}
