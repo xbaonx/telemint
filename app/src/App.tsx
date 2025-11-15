@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
+import { TonConnectButton, useTonAddress, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { Wallet } from 'lucide-react';
 import { UploadCard } from './components/UploadCard';
 import { MintButton } from './components/MintButton';
@@ -13,6 +13,7 @@ type AppState = 'idle' | 'uploading' | 'ready' | 'minting' | 'success';
 function App() {
   const userAddress = useTonAddress();
   const [tonConnectUI] = useTonConnectUI();
+  const wallet = useTonWallet();
   const [state, setState] = useState<AppState>('idle');
 
   // File state
@@ -52,6 +53,24 @@ function App() {
     } catch (e: any) {
       console.error('Debug transfer error:', e);
       alert(e?.message || 'Debug transfer failed');
+    }
+  };
+
+  const handleOpenWalletModal = () => {
+    try {
+      (tonConnectUI as any)?.openModal?.();
+    } catch (e) {
+      console.log('openModal not available');
+    }
+  };
+
+  const handleReadMintFee = async () => {
+    try {
+      const fee = await getMintFeeOnChain(collectionAddress);
+      const ton = Number(fee) / 1_000_000_000;
+      alert(`On-chain mint fee: ${ton.toFixed(4)} TON`);
+    } catch (e: any) {
+      alert(e?.message || 'Failed to read on-chain mint fee');
     }
   };
 
@@ -257,12 +276,23 @@ function App() {
                     Send 0.01 TON to Collection (no payload)
                   </button>
                   <button onClick={handleDebugCollectionWithPayload} className="btn-outline text-xs">
-                    Send 0.01 TON + payload to Collection
+                    Send payload to Collection (mintFee + 0.35 TON)
                   </button>
                   <button onClick={handleDebugPayloadToSelf} className="btn-outline text-xs">
                     Send 0.05 TON + payload to My Wallet
                   </button>
+                  <button onClick={handleReadMintFee} className="btn-outline text-xs">
+                    Read on-chain mint fee
+                  </button>
+                  <button onClick={handleOpenWalletModal} className="btn-outline text-xs">
+                    Switch Wallet (Tonkeeper)
+                  </button>
                 </div>
+                {wallet && (
+                  <div className="text-xs text-gray-600">
+                    Connected wallet: <span className="font-mono">{(wallet as any)?.device?.appName || (wallet as any)?.name || 'Unknown'}</span>
+                  </div>
+                )}
               </div>
             )}
             {/* Upload Card */}

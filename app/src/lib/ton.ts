@@ -275,8 +275,14 @@ export function getTonViewerUrl(address: string, testnet: boolean = true): strin
  * Get transaction explorer URL
  */
 export function getTxExplorerUrl(txHash: string, testnet: boolean = true): string {
-  const base = testnet ? 'https://testnet.tonviewer.com/transaction' : 'https://tonviewer.com/transaction';
-  return `${base}/${txHash}`;
+  const base = testnet ? 'https://testnet.tonviewer.com' : 'https://tonviewer.com';
+  if (!txHash) return base;
+  // If it's a BOC (starts with te6cc...) returned by wallet, explorers can't open it as tx id.
+  // Fallback to explorer home to avoid 404.
+  if (txHash.startsWith('te6cc')) {
+    return base;
+  }
+  return `${base}/transaction/${txHash}`;
 }
 
 /**
