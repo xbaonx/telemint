@@ -67,7 +67,7 @@ export async function sendMintTransaction(
 
   // Send transaction
   const transaction = {
-    validUntil: Math.floor(Date.now() / 1000) + 360, // 6 minutes
+    validUntil: Math.floor(Date.now() / 1000) + 180, // 3 minutes
     messages: [
       {
         address: COLLECTION_ADDRESS,
@@ -78,16 +78,35 @@ export async function sendMintTransaction(
   };
 
   try {
-    const result = await tonConnectUI.sendTransaction(transaction);
+    // Thêm promise timeout 30s để tránh trường hợp treo vô tận
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Transaction timed out after 30s')), 30000);
+    });
+    
+    // Race giữa gọi transaction và timeout
+    const result = await Promise.race([
+      tonConnectUI.sendTransaction(transaction),
+      timeoutPromise
+    ]);
+    
     console.log('✅ Transaction sent:', result);
     return result as SendTransactionResponse;
   } catch (error: any) {
     console.error('❌ Transaction failed:', error);
     
+    // Phân loại lỗi chi tiết hơn
     if (error.message?.includes('user reject')) {
       throw new Error('Transaction rejected by user');
+    } else if (error.message?.includes('timeout')) {
+      throw new Error('Transaction request timed out. Please try again.');
+    } else if (error.message?.includes('network')) {
+      throw new Error('Network issue. Check your connection and try again.');
+    } else if (error.message?.includes('insufficient') || error.message?.includes('balance')) {
+      throw new Error('Insufficient balance to complete transaction.');
     }
     
+    // Log chi tiết hơn
+    console.error('🛑 Detailed error:', JSON.stringify(error, null, 2));
     throw new Error('Transaction failed. Please try again.');
   }
 }

@@ -60,7 +60,19 @@ export function MintButton({
       console.error('❌ Mint failed:', error);
       telegram.haptic('error');
       
-      const errorMessage = error.message || 'Failed to mint NFT. Please try again.';
+      // Chi tiết hóa lỗi
+      let errorMessage = error.message || 'Failed to mint NFT. Please try again.';
+      
+      // Kiểm tra chi tiết hơn dựa theo lỗi TON Connect
+      if (error.message?.includes('timeout')) {
+        errorMessage = 'Wallet connection timed out. Please try again.';
+      } else if (error.message?.includes('user reject')) {
+        errorMessage = 'Transaction was rejected in wallet.';
+      } else if (error.message?.includes('insufficient')) {
+        errorMessage = 'Insufficient balance to mint NFT.';
+      }
+      
+      console.log('🛑 Error details:', { message: errorMessage, originalError: error });
       telegram.showAlert(errorMessage);
     } finally {
       setIsMinting(false);
