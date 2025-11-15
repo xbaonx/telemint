@@ -54,7 +54,7 @@ contract NftCollection with Deployable, Ownable {
             code: itemInit.code,
             data: itemInit.data,
             body: beginCell()
-                .storeAddress(self.myAddress())
+                .storeAddress(myAddress())
                 .storeUint(self.nextIndex, 64)
                 .storeAddress(msg.to)
                 .storeRef(msg.content)
@@ -132,7 +132,7 @@ contract NftCollection with Deployable, Ownable {
     
     fun getNftItemInit(index: Int): StateInit {
         return initOf NftItem(
-            self.myAddress(),
+            myAddress(),
             index,
             self.owner, // Temporary, will be overridden on mint
             beginCell().endCell() // Temporary content

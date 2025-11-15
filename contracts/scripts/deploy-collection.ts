@@ -1,9 +1,14 @@
 #!/usr/bin/env tsx
 
 import { Address, toNano, beginCell, Cell } from '@ton/core';
+import { Buffer } from 'buffer';
+import { internal } from '@ton/ton';
 import { program } from 'commander';
 import chalk from 'chalk';
 import * as dotenv from 'dotenv';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
 import {
     getWallet,
     getTonClient,
@@ -29,25 +34,38 @@ async function deploy(fee: string, testnet: boolean) {
 
     // Get wallet
     const { contract: wallet, address: walletAddress, keyPair } = await getWallet(mnemonic, testnet);
-    const client = getTonClient(testnet);
+    const client = await getTonClient(testnet);
 
     await displayWalletInfo({ address: walletAddress }, client);
+    const walletState = await client.getContractState(walletAddress);
+    console.log(chalk.gray(`   Wallet state: ${walletState.state}`));
 
     // Load build artifacts
     console.log(chalk.cyan('\n📦 Loading build artifacts...'));
-    const NftCollectionModule = await import('../build/NftCollection.ts');
-    const NftItemModule = await import('../build/NftItem.ts');
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    // Polyfill Cell.fromHex if missing (generated code may call it)
+    if (!(Cell as any).fromHex) {
+        (Cell as any).fromHex = (hex: string) => Cell.fromBoc(Buffer.from(hex, 'hex'))[0];
+    }
+
+    // Load NftItem code cell from .code.boc
+    const itemCodeBocPath = path.resolve(__dirname, '../build/NftCollection_NftItem.code.boc');
+    if (!fs.existsSync(itemCodeBocPath)) {
+        throw new Error(`Build artifact not found: ${itemCodeBocPath}`);
+    }
+    const itemCodeBoc = fs.readFileSync(itemCodeBocPath);
+    const itemCode = Cell.fromBoc(itemCodeBoc)[0];
+    console.log(chalk.gray(`   NftItem code loaded`));
+    // Load NftCollection factory from generated TS
+    const NftCollectionModule = await import('../build/NftCollection_NftCollection.ts');
 
     // Parse mint fee
     const mintFee = toNano(fee);
     console.log(chalk.gray(`   Mint Fee: ${formatTon(mintFee)} TON`));
 
-    // Get NftItem code cell
-    const itemCode = Cell.fromBase64(NftItemModule.NftItem.code);
-    console.log(chalk.gray(`   NftItem code loaded`));
-
     // Create collection contract instance
-    const collection = NftCollectionModule.NftCollection.fromInit(
+    const collection = await NftCollectionModule.NftCollection.fromInit(
         walletAddress,
         itemCode,
         mintFee
@@ -67,18 +85,24 @@ async function deploy(fee: string, testnet: boolean) {
     // Prepare deployment
     console.log(chalk.cyan('\n📤 Sending deployment transaction...'));
 
-    const seqno = await wallet.getSeqno();
+    let seqno = 0;
+    try {
+        seqno = walletState.state === 'active' ? await wallet.getSeqno() : 0;
+    } catch {
+        seqno = 0; // likely uninitialized wallet
+    }
+    console.log(chalk.gray(`   Using seqno=${seqno}`));
     
     await wallet.sendTransfer({
         seqno,
         secretKey: keyPair.secretKey,
         messages: [
-            {
+            internal({
                 to: collectionAddress,
                 value: toNano('0.5'), // Deploy with 0.5 TON
                 init: collection.init,
                 body: beginCell().endCell(), // Empty body for deployment
-            },
+            }),
         ],
     });
 

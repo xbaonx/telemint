@@ -1,4 +1,5 @@
 import { TonClient, Address, WalletContractV4, internal, fromNano, toNano } from '@ton/ton';
+import { getHttpEndpoint } from '@orbs-network/ton-access';
 import { mnemonicToPrivateKey } from '@ton/crypto';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
@@ -9,26 +10,77 @@ dotenv.config();
 /**
  * Get TON client for testnet or mainnet
  */
-export function getTonClient(testnet: boolean = true): TonClient {
-    const endpoint = testnet
-        ? 'https://testnet.toncenter.com/api/v2/jsonRPC'
-        : 'https://toncenter.com/api/v2/jsonRPC';
-    
-    return new TonClient({
-        endpoint,
-        apiKey: process.env.TONCENTER_API_KEY,
-    });
+export async function getTonClient(testnet: boolean = true): Promise<TonClient> {
+    const network = testnet ? 'testnet' : 'mainnet';
+    const discovered = await getHttpEndpoint({ network });
+    const apiKey = process.env.TONCENTER_API_KEY;
+
+    // If endpoint is toncenter and apiKey is provided, append as query param
+    let endpoint = discovered;
+    try {
+        const u = new URL(discovered);
+        if (u.hostname.includes('toncenter.com') && apiKey) {
+            u.searchParams.set('api_key', apiKey);
+            endpoint = u.toString();
+        }
+    } catch {}
+
+    console.log(`🔌 RPC Endpoint: ${endpoint.replace(/api_key=[^&]*/,'api_key=***')}`);
+    console.log(`🔑 TONCENTER_API_KEY present: ${apiKey ? 'yes' : 'no'}`);
+
+    return new TonClient({ endpoint });
 }
 
 /**
  * Get wallet from mnemonic
  */
 export async function getWallet(mnemonic: string, testnet: boolean = true) {
-    const client = getTonClient(testnet);
-    const keyPair = await mnemonicToPrivateKey(mnemonic.split(' '));
+    const client = await getTonClient(testnet);
+    const words = mnemonic.trim().split(/\s+/);
+    if (words.length !== 24) {
+        throw new Error(`DEPLOYER_MNEMONIC must have 24 words, got ${words.length}`);
+    }
+    const keyPair = await mnemonicToPrivateKey(words);
     const workchain = 0;
-    const wallet = WalletContractV4.create({ workchain, publicKey: keyPair.publicKey });
-    const contract = client.open(wallet);
+
+    // Build candidates
+    const candidates: { label: string; wallet: any }[] = [
+        { label: 'V4R2 (default walletId)', wallet: WalletContractV4.create({ workchain, publicKey: keyPair.publicKey }) },
+        { label: 'V4R2 (walletId=0)', wallet: WalletContractV4.create({ workchain, publicKey: keyPair.publicKey, walletId: 0 }) },
+    ];
+
+    console.log('🔎 Derived addresses from mnemonic:');
+    for (const c of candidates) {
+        console.log(`   ${c.label} (bounceable):     ${c.wallet.address.toString({ bounceable: true })}`);
+        console.log(`   ${c.label} (non-bounceable): ${c.wallet.address.toString({ bounceable: false })}`);
+    }
+
+    // Probe balances and pick the best
+    const balances: { idx: number; bal: bigint }[] = [];
+    for (let i = 0; i < candidates.length; i++) {
+        try {
+            const bal = await client.getBalance(candidates[i].wallet.address);
+            balances.push({ idx: i, bal });
+        } catch {
+            balances.push({ idx: i, bal: 0n });
+        }
+    }
+
+    for (const b of balances) {
+        console.log(`   ${candidates[b.idx].label} balance: ${formatTon(b.bal)} TON`);
+    }
+
+    let chosenIdx = balances.reduce((best, cur) => (cur.bal > balances[best].bal ? cur.idx : best), 0 as number);
+    const chosen = candidates[chosenIdx];
+    if (balances[chosenIdx].bal === 0n) {
+        console.log('⚠️  All variants show 0 TON. Defaulting to V4R2 (default walletId).');
+        chosenIdx = 0;
+    }
+
+    console.log(`👉 Using ${candidates[chosenIdx].label}`);
+    const wallet = candidates[chosenIdx].wallet;
+
+    const contract = client.open(wallet as any);
 
     return {
         wallet,
@@ -163,7 +215,8 @@ export function loadDeployment(contractName: string): any {
  */
 export async function displayWalletInfo(wallet: any, client: TonClient): Promise<void> {
     console.log('\n📱 Wallet Info:');
-    console.log(`   Address: ${wallet.address.toString()}`);
+    console.log(`   Address: ${wallet.address.toString({ bounceable: true })}`);
+    console.log(`   Non-bounceable: ${wallet.address.toString({ bounceable: false })}`);
     
     try {
         const balance = await client.getBalance(wallet.address);
