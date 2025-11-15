@@ -20,7 +20,7 @@ export function buildMintPayload(toAddress: string, metadataUri: string): string
 
     // Đơn giản hóa: sử dụng cấu trúc đơn giản hơn cho metadata URI
     const contentCell = beginCell()
-      .storeUint(0, 8) // Prefix for off-chain content
+      .storeUint(0x01, 8) // TIP-64 off-chain content prefix
       .storeStringTail(metadataUri) // IPFS URI as string
       .endCell();
 
@@ -75,7 +75,6 @@ export async function sendMintTransaction(
         address: COLLECTION_ADDRESS,
         amount: amount,
         payload: payload,
-        bounce: true,
       },
     ],
   };
