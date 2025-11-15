@@ -5,7 +5,7 @@ import { UploadCard } from './components/UploadCard';
 import { MintButton } from './components/MintButton';
 import { SuccessSheet } from './components/SuccessSheet';
 import { uploadToIPFS } from './lib/ipfs';
-import { getMintPriceNanoton, formatAddress, registerDebugHelpers, getCollectionAddress, buildMintPayload } from './lib/ton';
+import { getMintPriceNanoton, formatAddress, registerDebugHelpers, getCollectionAddress, buildMintPayload, getMintFeeOnChain } from './lib/ton';
 import { telegram } from './lib/telegram';
 
 type AppState = 'idle' | 'uploading' | 'ready' | 'minting' | 'success';
@@ -89,8 +89,13 @@ function App() {
       }
       const payload = buildMintPayload(userAddress, metadataUri);
       const send = (window as any).debugSend;
+      // Đọc mint fee on-chain và cộng overhead 0.35 TON
+      const onchainFee = await getMintFeeOnChain(collectionAddress);
+      const overhead = 350000000n;
+      const totalNano = onchainFee + overhead;
+      const amountTon = (Number(totalNano) / 1_000_000_000).toFixed(2);
       if (typeof send === 'function') {
-        await send(collectionAddress, '0.01', payload);
+        await send(collectionAddress, amountTon, payload);
       } else {
         console.log('⚙️ debugSend không sẵn sàng, dùng fallback trực tiếp (with payload)');
         const tx = {
@@ -98,7 +103,7 @@ function App() {
           messages: [
             {
               address: collectionAddress,
-              amount: (1e7).toString(),
+              amount: totalNano.toString(),
               payload,
             },
           ],

@@ -9,6 +9,8 @@ import type { SendTransactionResponse } from '@tonconnect/ui-react';
 
 const COLLECTION_ADDRESS = import.meta.env.VITE_TON_COLLECTION_ADDRESS;
 const MINT_PRICE_NANOTON = import.meta.env.VITE_MINT_PRICE_NANOTON || '1000000000';
+const TONAPI_BASE = 'https://tonapi.io';
+const TONCENTER_BASE = 'https://toncenter.com/api/v3';
 
 /**
  * Build mint message payload
@@ -41,6 +43,52 @@ export function buildMintPayload(toAddress: string, metadataUri: string): string
 }
 
 /**
+ * Đọc mint fee on-chain (mainnet) qua public API. Fallback về .env nếu lỗi.
+ */
+export async function getMintFeeOnChain(collection: string): Promise<bigint> {
+  // Thử TonAPI v2 trước
+  try {
+    const url = `${TONAPI_BASE}/v2/blockchain/accounts/${collection}/methods/get_mint_fee`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const json = await res.json();
+      const stack = json?.result?.stack || json?.stack || [];
+      const raw = Array.isArray(stack) ? (stack[0]?.[1] ?? stack[0]?.value ?? stack[0]) : undefined;
+      if (raw !== undefined && raw !== null) {
+        const fee = BigInt(raw.toString());
+        console.log('🔎 On-chain mint fee (TonAPI):', fee.toString());
+        return fee;
+      }
+    }
+  } catch (e) {
+    console.warn('TonAPI get_mint_fee failed, fallback to Toncenter/env');
+  }
+
+  // Thử Toncenter
+  try {
+    const url = `${TONCENTER_BASE}/runGetMethod?address=${collection}&method=get_mint_fee`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const json = await res.json();
+      const stack = json?.result?.stack || [];
+      const raw = Array.isArray(stack) ? (stack[0]?.[1] ?? stack[0]?.value ?? stack[0]) : undefined;
+      if (raw !== undefined && raw !== null) {
+        const fee = BigInt(raw.toString());
+        console.log('🔎 On-chain mint fee (Toncenter):', fee.toString());
+        return fee;
+      }
+    }
+  } catch (e) {
+    console.warn('Toncenter get_mint_fee failed, fallback to env');
+  }
+
+  // Fallback về env
+  const fallback = BigInt(MINT_PRICE_NANOTON);
+  console.log('🔎 Using fallback mint fee from env:', fallback.toString());
+  return fallback;
+}
+
+/**
  * Send mint transaction via TON Connect
  */
 export async function sendMintTransaction(
@@ -55,15 +103,17 @@ export async function sendMintTransaction(
   // Build payload
   const payload = buildMintPayload(toAddress, metadataUri);
 
-  // Calculate amount: mint fee + DEPLOY_ITEM_VALUE (0.3 TON) + GAS_BUFFER (0.05 TON)
+  // Get on-chain mint fee and add overhead
+  const onchainFee = await getMintFeeOnChain(COLLECTION_ADDRESS);
   const MINT_OVERHEAD_NANOTON = 350000000n; // 0.35 TON
-  const amount = (BigInt(MINT_PRICE_NANOTON) + MINT_OVERHEAD_NANOTON).toString();
+  const amount = (onchainFee + MINT_OVERHEAD_NANOTON).toString();
 
   console.log('📤 Sending mint transaction:', {
     collection: COLLECTION_ADDRESS,
     to: toAddress,
     amount: formatNanoTon(amount),
     metadataUri,
+    onchainFee: formatNanoTon(onchainFee.toString()),
   });
 
   // Send transaction
