@@ -55,6 +55,39 @@ function App() {
     }
   };
 
+  const handleDebugPayloadToSelf = async () => {
+    try {
+      if (!userAddress || !metadataUri) {
+        alert('Cần kết nối ví và có metadata trước khi chạy test payload');
+        return;
+      }
+      const payload = buildMintPayload(userAddress, metadataUri);
+      const send = (window as any).debugSend;
+      const amountSelf = '0.05'; // 0.05 TON để tránh ngưỡng tối thiểu
+      if (typeof send === 'function') {
+        await send(userAddress, amountSelf, payload);
+      } else {
+        console.log('⚙️ debugSend không sẵn sàng, dùng fallback trực tiếp (payload → self)');
+        const tx = {
+          validUntil: Math.floor(Date.now() / 1000) + 180,
+          messages: [
+            {
+              address: userAddress,
+              amount: (5e7).toString(), // 0.05 TON
+              payload,
+            },
+          ],
+        } as const;
+        console.log('🧪 Fallback tx (payload → self):', tx);
+        await tonConnectUI.sendTransaction(tx as any);
+      }
+      alert('Đã gửi yêu cầu 0.05 TON + payload tới chính ví của bạn, hãy xác nhận trong ví.');
+    } catch (e: any) {
+      console.error('Debug payload-to-self error:', e);
+      alert(e?.message || 'Debug payload-to-self failed');
+    }
+  };
+
   const handleDebugCollectionNoPayload = async () => {
     try {
       const fn = (window as any).debugSend;
@@ -225,6 +258,9 @@ function App() {
                   </button>
                   <button onClick={handleDebugCollectionWithPayload} className="btn-outline text-xs">
                     Send 0.01 TON + payload to Collection
+                  </button>
+                  <button onClick={handleDebugPayloadToSelf} className="btn-outline text-xs">
+                    Send 0.05 TON + payload to My Wallet
                   </button>
                 </div>
               </div>
