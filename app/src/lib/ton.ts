@@ -75,6 +75,7 @@ export async function sendMintTransaction(
         address: COLLECTION_ADDRESS,
         amount: amount,
         payload: payload,
+        bounce: true,
       },
     ],
   };
