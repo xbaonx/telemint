@@ -1,0 +1,13 @@
+{
+  "url": "https://telemint.onrender.com",
+  "name": "Telemint",
+  "iconUrl": "https://telemint.onrender.com/vite.svg",
+  "termsOfUseUrl": "https://telemint.onrender.com/terms",
+  "privacyPolicyUrl": "https://telemint.onrender.com/privacy",
+  
+  "telegram_bot_username": "telemint_bot",
+  
+  "version": "1.0.0",
+  
+  "return_strategy": "back"
+}

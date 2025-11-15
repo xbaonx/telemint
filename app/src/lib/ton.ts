@@ -18,22 +18,23 @@ export function buildMintPayload(toAddress: string, metadataUri: string): string
   try {
     const to = Address.parse(toAddress);
 
-    // Build content cell containing metadata URI
+    // Đơn giản hóa: sử dụng cấu trúc đơn giản hơn cho metadata URI
     const contentCell = beginCell()
       .storeUint(0, 8) // Prefix for off-chain content
       .storeStringTail(metadataUri) // IPFS URI as string
       .endCell();
 
-    // Build main message body
-    // Mint message: op=0x01 + to Address + content Cell
+    // Build main message body - Đảm bảo đúng thứ tự và format
+    // Chỉ sử dụng cấu trúc đơn giản: op=1 + address
     const messageBody = beginCell()
-      .storeUint(0x01, 32) // Operation code for minting NFT (thêm mã op)
-      .storeAddress(to)
+      .storeUint(1, 32) // Sử dụng giá trị chỉ là 1, không dùng hex (0x01)
+      .storeAddress(to) 
       .storeRef(contentCell)
       .endCell();
 
     // Convert to base64 for TON Connect
     const payload = messageBody.toBoc().toString('base64');
+    console.log('💼 Mint payload generated:', payload);
     return payload;
   } catch (error) {
     console.error('❌ Error building mint payload:', error);
@@ -107,14 +108,41 @@ export async function sendMintTransaction(
       setTimeout(() => reject(new Error('Transaction approval timed out after 60s')), 60000);
     });
     
-    // Race giữa gọi transaction và timeout
-    const result = await Promise.race([
-      tonConnectUI.sendTransaction(transaction),
-      timeoutPromise
-    ]);
+    // Thử gọi transaction với cơ chế retry
+    let attempts = 0;
+    const maxAttempts = 2;
     
-    console.log('✅ Transaction sent:', result);
-    return result as SendTransactionResponse;
+    while (attempts < maxAttempts) {
+      try {
+        attempts++;
+        if (attempts > 1) {
+          console.log(`🔄 Retry attempt ${attempts}/${maxAttempts}...`);
+        }
+
+        // Race giữa gọi transaction và timeout
+        const result = await Promise.race([
+          tonConnectUI.sendTransaction(transaction),
+          timeoutPromise
+        ]);
+        
+        console.log('✅ Transaction sent:', result);
+        return result as SendTransactionResponse;
+      } catch (err: any) {
+        // Nếu là lỗi verification hoặc BadRequestError, thử lại
+        if ((err.message?.includes('verification') || err.message?.includes('BadRequestError')) 
+            && attempts < maxAttempts) {
+          console.log('♻️ Transaction verification failed, retrying...');
+          // Chờ ngắn trước khi thử lại
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+        // Nếu lỗi khác hoặc đã hết số lần retry, throw lỗi
+        throw err;
+      }
+    }
+    
+    // Fallback trong trường hợp vòng lặp kết thúc mà không có return/throw
+    throw new Error('Failed to send transaction after multiple attempts');
   } catch (error: any) {
     console.error('❌ Transaction failed:', error);
     
@@ -127,6 +155,10 @@ export async function sendMintTransaction(
       throw new Error('Network issue. Check your connection and try again.');
     } else if (error.message?.includes('insufficient') || error.message?.includes('balance')) {
       throw new Error('Insufficient balance to complete transaction.');
+    } else if (error.message?.includes('verification failed')) {
+      // Lỗi Transaction verification failed
+      console.error('❌ Transaction verification failed:', error);
+      throw new Error('Giao dịch không được xác thực. Hãy kiểm tra ví của bạn và thử lại.');
     } else if (error.message?.includes('contains errors') || error.message?.includes('BadRequestError')) {
       // Xử lý riêng cho lỗi BadRequestError
       console.error('❌ BadRequestError details:', error);
@@ -135,9 +167,9 @@ export async function sendMintTransaction(
       if (error.message?.includes('payload')) {
         throw new Error('Invalid transaction format. Please try again later.');
       } else if (error.message?.includes('wallet')) {
-        throw new Error('Wallet communication error. Please reconnect your wallet.');
+        throw new Error('Lỗi kết nối với ví TON. Hãy kết nối lại ví.');
       } else {
-        throw new Error('Request contains errors. Please try again later.');
+        throw new Error('Yêu cầu chứa lỗi. Vui lòng thử lại sau.');
       }
     }
     
