@@ -15,7 +15,14 @@ console.log('Telegram available:', telegram.isAvailable());
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <TonConnectUIProvider manifestUrl={manifestUrl} restoreConnection>
+    <TonConnectUIProvider 
+      manifestUrl={manifestUrl} 
+      restoreConnection
+      actionsConfiguration={{
+        returnStrategy: 'back',
+        twaReturnUrl: 'https://t.me/mintboxx_bot'
+      }}
+    >
       <App />
     </TonConnectUIProvider>
   </React.StrictMode>

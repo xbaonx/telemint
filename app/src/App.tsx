@@ -5,7 +5,7 @@ import { UploadCard } from './components/UploadCard';
 import { MintButton } from './components/MintButton';
 import { SuccessSheet } from './components/SuccessSheet';
 import { uploadToIPFS } from './lib/ipfs';
-import { getMintPriceNanoton, formatAddress, registerDebugHelpers, getCollectionAddress } from './lib/ton';
+import { getMintPriceNanoton, formatAddress, registerDebugHelpers, getCollectionAddress, buildMintPayload } from './lib/ton';
 import { telegram } from './lib/telegram';
 
 type AppState = 'idle' | 'uploading' | 'ready' | 'minting' | 'success';
@@ -58,11 +58,22 @@ function App() {
   const handleDebugCollectionNoPayload = async () => {
     try {
       const fn = (window as any).debugSend;
-      if (typeof fn !== 'function') {
-        alert('debugSend chưa sẵn sàng');
-        return;
+      if (typeof fn === 'function') {
+        await fn(collectionAddress, '0.01');
+      } else {
+        console.log('⚙️ debugSend không sẵn sàng, dùng fallback trực tiếp');
+        const tx = {
+          validUntil: Math.floor(Date.now() / 1000) + 180,
+          messages: [
+            {
+              address: collectionAddress,
+              amount: (1e7).toString(), // 0.01 TON = 10,000,000 nanoton
+            },
+          ],
+        } as const;
+        console.log('🧪 Fallback tx (no payload):', tx);
+        await tonConnectUI.sendTransaction(tx as any);
       }
-      await fn(collectionAddress, '0.01');
       alert('Đã gửi yêu cầu 0.01 TON tới collection, hãy xác nhận trong ví.');
     } catch (e: any) {
       console.error('Debug collection no-payload error:', e);
@@ -76,14 +87,25 @@ function App() {
         alert('Cần kết nối ví và có metadata trước khi chạy test payload');
         return;
       }
-      const build = (window as any).buildMintPayload;
+      const payload = buildMintPayload(userAddress, metadataUri);
       const send = (window as any).debugSend;
-      if (typeof build !== 'function' || typeof send !== 'function') {
-        alert('Debug helpers chưa sẵn sàng');
-        return;
+      if (typeof send === 'function') {
+        await send(collectionAddress, '0.01', payload);
+      } else {
+        console.log('⚙️ debugSend không sẵn sàng, dùng fallback trực tiếp (with payload)');
+        const tx = {
+          validUntil: Math.floor(Date.now() / 1000) + 180,
+          messages: [
+            {
+              address: collectionAddress,
+              amount: (1e7).toString(),
+              payload,
+            },
+          ],
+        } as const;
+        console.log('🧪 Fallback tx (with payload):', tx);
+        await tonConnectUI.sendTransaction(tx as any);
       }
-      const payload = build(userAddress, metadataUri);
-      await send(collectionAddress, '0.01', payload);
       alert('Đã gửi yêu cầu 0.01 TON + payload tới collection, hãy xác nhận trong ví.');
     } catch (e: any) {
       console.error('Debug collection payload error:', e);

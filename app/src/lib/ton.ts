@@ -271,7 +271,31 @@ export function registerDebugHelpers(
       console.log('🧪 Debug transfer result:', res);
       return res;
     };
-    console.log('🧪 Registered debugTonTransfer(to, amountTon) on window');
+    (window as any).debugSend = async (
+      address: string,
+      amountTon: string = '0.05',
+      payloadBase64?: string
+    ) => {
+      if (!address) throw new Error('debugSend requires address');
+      const msg: any = {
+        address,
+        amount: toNano(amountTon).toString(),
+      };
+      if (payloadBase64) msg.payload = payloadBase64;
+      const tx = {
+        validUntil: Math.floor(Date.now() / 1000) + 180,
+        messages: [msg],
+      };
+      console.log('🧪 Debug send transaction:', tx);
+      const res = await tonConnectUI.sendTransaction(tx);
+      console.log('🧪 Debug send result:', res);
+      return res;
+    };
+    (window as any).buildMintPayload = (to: string, uri: string) => buildMintPayload(to, uri);
+    (window as any).COLLECTION_ADDRESS = COLLECTION_ADDRESS;
+    (window as any).MINT_PRICE_NANOTON = MINT_PRICE_NANOTON;
+    (window as any).userAddress = defaultTo || '';
+    console.log('🧪 Registered debug helpers on window');
   } catch (e) {
     console.error('Failed to register debug helpers:', e);
   }
