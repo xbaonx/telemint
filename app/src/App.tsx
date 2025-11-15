@@ -5,7 +5,7 @@ import { UploadCard } from './components/UploadCard';
 import { MintButton } from './components/MintButton';
 import { SuccessSheet } from './components/SuccessSheet';
 import { uploadToIPFS } from './lib/ipfs';
-import { getMintPriceNanoton, formatAddress, registerDebugHelpers } from './lib/ton';
+import { getMintPriceNanoton, formatAddress, registerDebugHelpers, getCollectionAddress } from './lib/ton';
 import { telegram } from './lib/telegram';
 
 type AppState = 'idle' | 'uploading' | 'ready' | 'minting' | 'success';
@@ -34,6 +34,7 @@ function App() {
   }, [tonConnectUI, userAddress]);
 
   const debugMode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('debug') === '1';
+  const collectionAddress = getCollectionAddress();
 
   const handleDebugTransferClick = async () => {
     try {
@@ -51,6 +52,42 @@ function App() {
     } catch (e: any) {
       console.error('Debug transfer error:', e);
       alert(e?.message || 'Debug transfer failed');
+    }
+  };
+
+  const handleDebugCollectionNoPayload = async () => {
+    try {
+      const fn = (window as any).debugSend;
+      if (typeof fn !== 'function') {
+        alert('debugSend chưa sẵn sàng');
+        return;
+      }
+      await fn(collectionAddress, '0.01');
+      alert('Đã gửi yêu cầu 0.01 TON tới collection, hãy xác nhận trong ví.');
+    } catch (e: any) {
+      console.error('Debug collection no-payload error:', e);
+      alert(e?.message || 'Debug collection failed');
+    }
+  };
+
+  const handleDebugCollectionWithPayload = async () => {
+    try {
+      if (!userAddress || !metadataUri) {
+        alert('Cần kết nối ví và có metadata trước khi chạy test payload');
+        return;
+      }
+      const build = (window as any).buildMintPayload;
+      const send = (window as any).debugSend;
+      if (typeof build !== 'function' || typeof send !== 'function') {
+        alert('Debug helpers chưa sẵn sàng');
+        return;
+      }
+      const payload = build(userAddress, metadataUri);
+      await send(collectionAddress, '0.01', payload);
+      alert('Đã gửi yêu cầu 0.01 TON + payload tới collection, hãy xác nhận trong ví.');
+    } catch (e: any) {
+      console.error('Debug collection payload error:', e);
+      alert(e?.message || 'Debug collection with payload failed');
     }
   };
 
@@ -143,13 +180,24 @@ function App() {
           <div className="space-y-4">
             {/* Debug tools */}
             {debugMode && (
-              <div className="card border-dashed">
+              <div className="card border-dashed space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm text-gray-700">
                     Debug: Gửi giao dịch thử 0.01 TON tới địa chỉ ví đang kết nối để kiểm tra xác minh ví.
                   </p>
                   <button onClick={handleDebugTransferClick} className="btn-secondary whitespace-nowrap">
                     Run Debug Transfer
+                  </button>
+                </div>
+                <div className="text-xs text-gray-600">
+                  Collection: <span className="font-mono break-all">{collectionAddress}</span>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button onClick={handleDebugCollectionNoPayload} className="btn-outline text-xs">
+                    Send 0.01 TON to Collection (no payload)
+                  </button>
+                  <button onClick={handleDebugCollectionWithPayload} className="btn-outline text-xs">
+                    Send 0.01 TON + payload to Collection
                   </button>
                 </div>
               </div>
