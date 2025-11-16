@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
-import type { SendTransactionResponse } from '@tonconnect/ui-react';
+// Loại bỏ import không cần thiết 
+// import type { SendTransactionResponse } from '@tonconnect/ui-react';
 import { formatNanoTon } from '../lib/ton';
-import { sendDirectMintTransaction } from '../lib/direct-mint';
+import { sendDirectMintTransaction, MintResponse } from '../lib/direct-mint';
 import { telegram } from '../lib/telegram';
 
 interface MintButtonProps {
   metadataUri: string | null;
   mintPrice: string;
-  onSuccess: (txHash: string) => void;
+  onSuccess: (txHash: string, requestId?: string) => void;
   disabled?: boolean;
 }
 
@@ -53,7 +54,7 @@ export function MintButton({
       );
 
       // Send direct mint transaction (không có payload phức tạp)
-      const result: SendTransactionResponse = await sendDirectMintTransaction(
+      const result: MintResponse = await sendDirectMintTransaction(
         tonConnectUI,
         userAddress,
         metadataUri
@@ -64,7 +65,14 @@ export function MintButton({
       // Extract tx hash/BOC from result if available
       // Some wallets return `boc` in the response; fallback to a placeholder string
       const txHash = (result as any)?.boc || 'submitted';
-      onSuccess(txHash);
+      
+      console.log('🖊️ Mint transaction sent with result:', {
+        txHash, 
+        requestId: result.requestId
+      });
+      
+      // Gọi hàm onSuccess với txHash và requestId
+      onSuccess(txHash, result.requestId);
       
       // Thông báo thành công
       alert('Giao dịch thành công! NFT sẽ được mint và gửi đến ví của bạn trong ít phút.');

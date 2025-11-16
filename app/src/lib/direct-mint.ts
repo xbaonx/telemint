@@ -16,11 +16,15 @@ const MINT_PRICE_NANOTON = import.meta.env.VITE_MINT_PRICE_NANOTON || '100000000
 /**
  * Gửi giao dịch đơn giản tới API wallet
  */
+export interface MintResponse extends SendTransactionResponse {
+  requestId?: string;
+}
+
 export async function sendDirectMintTransaction(
   tonConnectUI: ReturnType<typeof useTonConnectUI>[0],
   userAddress: string,
   metadataUri: string
-): Promise<SendTransactionResponse> {
+): Promise<MintResponse> {
   if (!API_WALLET_ADDRESS) {
     throw new Error('API wallet address not configured');
   }
@@ -71,14 +75,17 @@ export async function sendDirectMintTransaction(
     console.log('✅ Transaction sent:', result);
     
     // Thông báo cho backend về giao dịch để xử lý mint
+    let requestId;
     try {
-      await notifyBackendOfTransaction(result, userAddress, metadataUri);
+      const backendResponse = await notifyBackendOfTransaction(result, userAddress, metadataUri);
+      requestId = backendResponse?.requestId;
+      console.log('✅ Backend notified with request ID:', requestId);
     } catch (notifyError) {
       console.error('⚠️ Failed to notify backend (but transaction was sent):', notifyError);
       // Không throw lỗi ở đây, vì giao dịch đã được gửi thành công
     }
     
-    return result as SendTransactionResponse;
+    return { ...result, requestId } as MintResponse;
   } catch (error: any) {
     console.error('❌ Transaction failed:', error);
     
@@ -104,7 +111,7 @@ async function notifyBackendOfTransaction(
   txResult: SendTransactionResponse, 
   userAddress: string,
   metadataUri: string
-): Promise<void> {
+): Promise<{ requestId: string } | undefined> {
   // Xác định endpoint API (tự động sử dụng API cùng domain nếu không cấu hình API_ENDPOINT)
   const apiUrl = API_ENDPOINT 
     ? `${API_ENDPOINT}/api/mint-request`
@@ -128,7 +135,16 @@ async function notifyBackendOfTransaction(
       throw new Error('Failed to notify backend');
     }
     
-    console.log('✅ Backend notified successfully');
+    // Parse response from backend
+    const responseData = await response.json();
+    console.log('✅ Backend notified successfully:', responseData);
+    
+    // Return requestId from backend
+    if (responseData && responseData.requestId) {
+      return { requestId: responseData.requestId };
+    }
+    
+    return undefined;
   } catch (err) {
     console.error('❌ Backend notification error:', err);
     throw new Error('Failed to notify backend');

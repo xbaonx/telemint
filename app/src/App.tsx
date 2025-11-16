@@ -16,6 +16,7 @@ function App() {
   const [tonConnectUI] = useTonConnectUI();
   const wallet = useTonWallet();
   const [state, setState] = useState<AppState>('idle');
+  const [mintRequestId, setMintRequestId] = useState<string | undefined>();
 
   // File state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -217,9 +218,11 @@ function App() {
   };
 
   // Handle mint success
-  const handleMintSuccess = (hash: string) => {
+  const handleMintSuccess = (hash: string, requestId?: string) => {
     setTxHash(hash);
+    setMintRequestId(requestId);
     setState('success');
+    console.log('🖊️ Mint successful:', { hash, requestId });
   };
 
   // Handle reset
@@ -230,6 +233,7 @@ function App() {
     setNftName('My Telegram NFT');
     setNftDescription('');
     setTxHash('');
+    setMintRequestId(undefined);
     setState('idle');
   };
 
@@ -255,7 +259,7 @@ function App() {
 
         {/* Main Content */}
         {state === 'success' ? (
-          <SuccessSheet txHash={txHash} onReset={handleReset} />
+          <SuccessSheet txHash={txHash} requestId={mintRequestId} onReset={handleReset} />
         ) : (
           <div className="space-y-4">
             {/* Debug tools */}

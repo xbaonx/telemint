@@ -1,13 +1,16 @@
+// Loại bỏ import không sử dụng
 import { CheckCircle2, ExternalLink, RotateCcw } from 'lucide-react';
 import { getTxExplorerUrl } from '../lib/ton';
 import { telegram } from '../lib/telegram';
+import { MintStatusChecker } from './MintStatusChecker';
 
 interface SuccessSheetProps {
   txHash: string;
   onReset: () => void;
+  requestId?: string;
 }
 
-export function SuccessSheet({ txHash, onReset }: SuccessSheetProps) {
+export function SuccessSheet({ txHash, onReset, requestId }: SuccessSheetProps) {
   const isTestnet = import.meta.env.VITE_NETWORK === 'testnet';
   const explorerUrl = getTxExplorerUrl(txHash, isTestnet);
 
@@ -43,6 +46,19 @@ export function SuccessSheet({ txHash, onReset }: SuccessSheetProps) {
           </p>
         </div>
 
+        {/* Kiểm tra trạng thái mint nếu có requestId */}
+        {requestId && (
+          <div className="w-full mb-4">
+            <MintStatusChecker requestId={requestId} />
+          </div>
+        )}
+
+        {!requestId && (
+          <p className="text-xs text-gray-500 mb-4">
+            Việc mint NFT sẽ được xử lý tự động trên hệ thống của chúng tôi. Vui lòng đợi vài phút để NFT xuất hiện trong ví của bạn.
+          </p>
+        )}
+
         <div className="flex flex-col gap-3 w-full">
           <button
             onClick={handleViewTransaction}
@@ -60,10 +76,6 @@ export function SuccessSheet({ txHash, onReset }: SuccessSheetProps) {
             <span>Mint Another NFT</span>
           </button>
         </div>
-
-        <p className="text-xs text-gray-500 mt-4">
-          Việc mint NFT sẽ được xử lý tự động trên hệ thống của chúng tôi. Vui lòng đợi vài phút để NFT xuất hiện trong ví của bạn.
-        </p>
       </div>
     </div>
   );
