@@ -3,6 +3,7 @@ import { CheckCircle2, ExternalLink, RotateCcw } from 'lucide-react';
 import { getTxExplorerUrl } from '../lib/ton';
 import { telegram } from '../lib/telegram';
 import { MintStatusChecker } from './MintStatusChecker';
+import { useTonAddress } from '@tonconnect/ui-react';
 
 interface SuccessSheetProps {
   txHash: string;
@@ -12,11 +13,19 @@ interface SuccessSheetProps {
 
 export function SuccessSheet({ txHash, onReset, requestId }: SuccessSheetProps) {
   const isTestnet = import.meta.env.VITE_NETWORK === 'testnet';
-  const explorerUrl = getTxExplorerUrl(txHash, isTestnet);
+  const userAddress = useTonAddress();
+  
+  // URL cho NFT trong ví (hiển thị tất cả NFT của người dùng)
+  const nftExplorerUrl = userAddress ? 
+    `${isTestnet ? 'https://testnet.tonviewer.com' : 'https://tonviewer.com'}/address/${userAddress}/nfts` : 
+    `${isTestnet ? 'https://testnet.tonviewer.com' : 'https://tonviewer.com'}`;
+  
+  // URL giao dịch (chỉ là fallback nếu không có địa chỉ người dùng)
+  const txExplorerUrl = getTxExplorerUrl(txHash, isTestnet);
 
-  const handleViewTransaction = () => {
+  const handleViewNFTs = () => {
     telegram.haptic('light');
-    telegram.openLink(explorerUrl);
+    telegram.openLink(nftExplorerUrl);
   };
 
   const handleReset = () => {
@@ -61,11 +70,11 @@ export function SuccessSheet({ txHash, onReset, requestId }: SuccessSheetProps) 
 
         <div className="flex flex-col gap-3 w-full">
           <button
-            onClick={handleViewTransaction}
+            onClick={handleViewNFTs}
             className="btn-primary flex items-center justify-center gap-2"
           >
             <ExternalLink className="w-5 h-5" />
-            <span>View on Explorer</span>
+            <span>View NFTs in Wallet</span>
           </button>
 
           <button

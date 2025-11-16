@@ -32,7 +32,7 @@ export async function sendDirectMintTransaction(
   // Lấy mint fee từ biến môi trường hoặc API
   // Chúng ta có thể sử dụng getMintFeeOnChain nhưng đơn giản hóa bằng cách dùng giá trị từ env
   const mintFee = BigInt(MINT_PRICE_NANOTON);
-  const overhead = 350000000n; // 0.35 TON overhead
+  const overhead = 50000000n; // 0.05 TON overhead cho phí gas
   const amount = (mintFee + overhead).toString();
   
   console.log('📤 Sending direct mint transaction:', {
