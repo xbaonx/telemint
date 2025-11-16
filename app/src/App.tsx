@@ -4,6 +4,7 @@ import { Wallet } from 'lucide-react';
 import { UploadCard } from './components/UploadCard';
 import { MintButton } from './components/MintButton';
 import { SuccessSheet } from './components/SuccessSheet';
+import { DirectMintInfo } from './components/DirectMintInfo';
 import { uploadToIPFS } from './lib/ipfs';
 import { getMintPriceNanoton, formatAddress, registerDebugHelpers, getCollectionAddress, buildMintPayload, getMintFeeOnChain } from './lib/ton';
 import { telegram } from './lib/telegram';
@@ -377,10 +378,10 @@ function App() {
               <div className="card">
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 mb-2">
-                    Ready to mint your NFT!
+                    Sẵn sàng mint NFT của bạn!
                   </p>
                   <p className="text-xs text-gray-500">
-                    Make sure you have enough TON in your wallet to cover the mint fee and gas.
+                    Đảm bảo bạn có đủ TON trong ví để chi trả phí mint và gas.
                   </p>
                 </div>
 
@@ -393,9 +394,12 @@ function App() {
 
                 {!userAddress && (
                   <p className="text-center text-sm text-red-500 mt-3">
-                    Please connect your wallet to mint
+                    Vui lòng kết nối ví để mint NFT
                   </p>
                 )}
+                
+                {/* Thông tin Direct Mint */}
+                <DirectMintInfo />
               </div>
             )}
           </div>

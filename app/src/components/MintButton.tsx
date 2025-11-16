@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 import type { SendTransactionResponse } from '@tonconnect/ui-react';
-import { sendMintTransaction, formatNanoTon } from '../lib/ton';
+import { formatNanoTon } from '../lib/ton';
+import { sendDirectMintTransaction } from '../lib/direct-mint';
 import { telegram } from '../lib/telegram';
 
 interface MintButtonProps {
@@ -51,8 +52,8 @@ export function MintButton({
         'and allow popups or external windows.'
       );
 
-      // Send mint transaction
-      const result: SendTransactionResponse = await sendMintTransaction(
+      // Send direct mint transaction (không có payload phức tạp)
+      const result: SendTransactionResponse = await sendDirectMintTransaction(
         tonConnectUI,
         userAddress,
         metadataUri
@@ -66,21 +67,23 @@ export function MintButton({
       onSuccess(txHash);
       
       // Thông báo thành công
-      alert('NFT successfully minted! It will appear in your wallet soon.');
+      alert('Giao dịch thành công! NFT sẽ được mint và gửi đến ví của bạn trong ít phút.');
     } catch (error: any) {
       console.error('❌ Mint failed:', error);
       telegram.haptic('error');
       
       // Chi tiết hóa lỗi
-      let errorMessage = error.message || 'Failed to mint NFT. Please try again.';
+      let errorMessage = error.message || 'Không thể gửi yêu cầu mint NFT. Vui lòng thử lại.';
       
       // Kiểm tra chi tiết hơn dựa theo lỗi TON Connect
       if (error.message?.includes('timeout')) {
-        errorMessage = 'Wallet connection timed out. Please try again.';
-      } else if (error.message?.includes('user reject')) {
-        errorMessage = 'Transaction was rejected in wallet.';
-      } else if (error.message?.includes('insufficient')) {
-        errorMessage = 'Insufficient balance to mint NFT.';
+        errorMessage = 'Kết nối ví hết thời gian. Vui lòng thử lại.';
+      } else if (error.message?.includes('user reject') || error.message?.includes('từ chối')) {
+        errorMessage = 'Giao dịch đã bị từ chối trong ví.';
+      } else if (error.message?.includes('insufficient') || error.message?.includes('không đủ')) {
+        errorMessage = 'Số dư không đủ để mint NFT.';
+      } else if (error.message?.includes('backend') || error.message?.includes('notify')) {
+        errorMessage = 'Giao dịch được gửi nhưng không thể thông báo cho hệ thống. NFT có thể vẫn sẽ được mint, vui lòng kiểm tra sau.';
       }
       
       console.log('🛑 Error details:', { message: errorMessage, originalError: error });

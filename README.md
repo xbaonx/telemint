@@ -1,27 +1,28 @@
 # TON NFT Minting - Telegram Mini-App
 
-Production-ready Telegram Mini-App for minting NFTs on TON blockchain with on-chain payment collection.
+Production-ready Telegram Mini-App for minting NFTs on TON blockchain with Direct Mint API.
 
 ## 🎯 Overview
 
 This project enables users to:
-1. Connect TON wallet (Tonkeeper/TonSpace) via TON Connect
+1. Connect TON wallet (Tonkeeper/Telegram Wallet) via TON Connect
 2. Upload images (client-side IPFS via web3.storage)
-3. Mint NFTs by sending transactions to NftCollection smart contract
-4. Pay mint fee on-chain (enforced by smart contract)
+3. Send payment to API wallet via simple transaction (no complex payload)
+4. Backend API automatically mints NFT and sends to user's wallet
 5. View NFT in wallet and TON explorer
 
 **Key Features:**
-- ✅ No backend required (fully client-side)
-- ✅ On-chain fee collection (contract owner can withdraw)
+- ✅ Compatible with Telegram Wallet in Mini-App
+- ✅ Simple transactions without complex payloads
+- ✅ Integrated API backend for automatic minting
 - ✅ Standard TON NFT implementation (compatible with wallets)
 - ✅ Clean, minimal MVP architecture
 - ✅ Production-ready code with TypeScript
 
-## 📁 Project Structure
+## 💻 Project Structure
 
 ```
-ton-miniapp/
+telemint/
 ├── contracts/              # Smart contracts (Tact)
 │   ├── NftItem.tact       # Individual NFT contract
 │   ├── NftCollection.tact # Collection & minting logic
@@ -34,18 +35,24 @@ ton-miniapp/
 │   │   └── utils.ts
 │   └── package.json
 │
+├── api/                   # Backend API Server
+│   ├── index.js          # Express API Server
+│   └── mint.js           # Mint Request API
+│
 ├── app/                   # Frontend React app
 │   ├── src/
-│   │   ├── components/   # UI components
-│   │   ├── lib/          # Core libraries
-│   │   │   ├── telegram.ts  # Telegram WebApp SDK
-│   │   │   ├── ipfs.ts      # IPFS upload
-│   │   │   └── ton.ts       # TON blockchain
+│   │   ├── components/    # UI components
+│   │   ├── lib/           # Core libraries
+│   │   │   ├── telegram.ts   # Telegram WebApp SDK
+│   │   │   ├── ipfs.ts       # IPFS upload
+│   │   │   ├── ton.ts        # TON blockchain
+│   │   │   └── direct-mint.ts # Direct Mint API
 │   │   ├── App.tsx
 │   │   └── main.tsx
 │   ├── vite.config.ts
 │   └── package.json
 │
+├── package.json          # Root package.json
 └── README.md (this file)
 ```
 
@@ -53,16 +60,25 @@ ton-miniapp/
 
 ### 1. Install Dependencies
 
+**Root Project:**
+```bash
+npm install
+```
+
+This will install dependencies for both the API server and frontend app.
+
+**For separate development:**
+
 **Contracts:**
 ```bash
 cd contracts
-pnpm install
+npm install
 ```
 
 **App:**
 ```bash
 cd app
-pnpm install
+npm install
 ```
 
 ### 2. Build & Deploy Smart Contracts
@@ -101,12 +117,23 @@ VITE_NETWORK=testnet
 
 ### 4. Run Development Server
 
+**Full Stack Development (API + Frontend):**
 ```bash
-cd app
-pnpm dev
+npm run dev
 ```
 
-App runs at `http://localhost:5173`
+This starts both the API server at `http://localhost:3000` and the frontend app at `http://localhost:5173`.
+
+**Frontend Only:**
+```bash
+cd app
+npm run dev
+```
+
+**API Server Only:**
+```bash
+npm run dev:api
+```
 
 ### 5. Test in Telegram
 
@@ -143,12 +170,12 @@ Open your bot in Telegram and test!
 - **web3.storage** - IPFS upload
 - **Telegram WebApp SDK** - Mini-app integration
 
-## 🎨 User Flow
+## 🌈 User Flow
 
 ```
 1. User opens mini-app in Telegram
    ↓
-2. Connect TON wallet (TON Connect)
+2. Connect TON wallet (TON Connect) - Works with Telegram Wallet!
    ↓
 3. Upload image + enter name/description
    ↓
@@ -156,15 +183,15 @@ Open your bot in Telegram and test!
    ↓
 5. Click "Mint NFT"
    ↓
-6. Wallet confirms transaction (mint fee + gas)
+6. Wallet confirms simple payment transaction (no complex payload)
    ↓
-7. Smart contract:
-   - Validates payment (mintFee + gas)
-   - Deploys new NftItem
-   - Assigns ownership to user
-   - Keeps fee as revenue
+7. Backend API automatically:
+   - Verifies transaction
+   - Calls collection contract
+   - Mints NFT for user
+   - Sends to user's wallet
    ↓
-8. NFT appears in user's wallet ✅
+8. NFT appears in user's wallet 
 ```
 
 ## 💰 Fee Management
@@ -187,11 +214,11 @@ pnpm tsx scripts/withdraw.ts \
 
 ## 🔐 Security
 
-- ✅ Private keys never leave user's wallet
-- ✅ TON Connect handles all signatures
-- ✅ Smart contract enforces minimum payment
-- ✅ Only owner can set fees and withdraw
-- ✅ Client-side validation before transactions
+- Private keys never leave user's wallet
+- TON Connect handles all signatures
+- Smart contract enforces minimum payment
+- Only owner can set fees and withdraw
+- Client-side validation before transactions
 
 ## 🧪 Testing Checklist
 
@@ -224,45 +251,41 @@ const MIN_TON_RESERVE: Int = 10000000;   // 0.01 TON
 
 Adjust based on real-world testing!
 
-## 🚢 Production Deployment
+## 📂 Production Deployment
 
 ### Contracts (Mainnet)
 ```bash
 cd contracts
-pnpm tsx scripts/deploy-collection.ts --fee 1 --mainnet
+npm tsx scripts/deploy-collection.ts --fee 1 --mainnet
 ```
 
-### Frontend - Render.com (Recommended)
+### Full Stack - Render.com (Recommended)
 
 **One-click deploy:**
 1. Push code to GitHub
 2. Connect to Render.com
-3. Auto-deploys from `render.yaml`
-4. Free HTTPS included!
+3. Create a new Web Service
+4. Set build command: `npm install && npm run build`
+5. Set start command: `npm start`
+6. Set environment variables in Render Dashboard
+
+**Environment Variables for Render:**
+```
+VITE_API_WALLET_ADDRESS=EQD... # API wallet address to receive payments
+VITE_TON_COLLECTION_ADDRESS=EQD... # Collection address
+VITE_MINT_PRICE_NANOTON=500000000 # 0.5 TON
+VITE_WEB3STORAGE_TOKEN=YOUR_TOKEN # IPFS token
+VITE_NETWORK=mainnet # or testnet
+```
 
 **See detailed guide:** [DEPLOYMENT.md](./DEPLOYMENT.md)
 
-### Frontend - Other Options
-```bash
-cd app
-pnpm build
-
-# Netlify
-netlify deploy --prod --dir=dist
-
-# Vercel
-vercel
-
-# Any static host
-# Upload dist/ folder
-```
-
 **Deployment checklist:**
-- ✅ Deploy contracts to mainnet first
-- ✅ Update `VITE_TON_COLLECTION_ADDRESS`
-- ✅ Set `VITE_NETWORK=mainnet`
-- ✅ Update TON Connect manifest URL
-- ✅ Configure Telegram bot URL in BotFather
+- Deploy contracts to mainnet first
+- Update `VITE_TON_COLLECTION_ADDRESS`
+- Set `VITE_NETWORK=mainnet`
+- Update TON Connect manifest URL
+- Configure Telegram bot URL in BotFather
 
 ## 🐛 Troubleshooting
 

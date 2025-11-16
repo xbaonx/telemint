@@ -1,0 +1,30 @@
+{
+  "name": "telemint",
+  "version": "1.0.0",
+  "description": "Telegram Mini App for minting NFTs on TON",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js",
+    "build": "cd app && npm install && npm run build",
+    "dev:api": "nodemon api/index.js",
+    "dev:app": "cd app && npm run dev",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:app\"",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "cd app && npm install"
+  },
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "@ton/core": "^0.56.0",
+    "@ton/crypto": "^3.2.0",
+    "@ton/ton": "^13.9.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.2"
+  }
+}

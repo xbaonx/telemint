@@ -29,11 +29,11 @@ export function SuccessSheet({ txHash, onReset }: SuccessSheetProps) {
         </div>
 
         <h2 className="text-2xl font-bold text-green-800 mb-2">
-          NFT Minted Successfully! 🎉
+          Giao dịch thành công! 🎉
         </h2>
 
         <p className="text-gray-600 mb-6">
-          Your NFT has been minted and will appear in your wallet shortly.
+          Giao dịch đã được xác nhận. NFT sẽ được mint và gửi đến ví của bạn trong vòng vài phút.
         </p>
 
         <div className="w-full bg-white rounded-lg p-4 mb-6">
@@ -62,7 +62,7 @@ export function SuccessSheet({ txHash, onReset }: SuccessSheetProps) {
         </div>
 
         <p className="text-xs text-gray-500 mt-4">
-          It may take a few moments for the NFT to appear in your wallet.
+          Việc mint NFT sẽ được xử lý tự động trên hệ thống của chúng tôi. Vui lòng đợi vài phút để NFT xuất hiện trong ví của bạn.
         </p>
       </div>
     </div>

@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: ton-nft-miniapp
-    env: static
-    buildCommand: cd app && npm install && npm run build
-    staticPublishPath: ./app/dist
+    name: telemint
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     envVars:
       - key: NODE_VERSION
         value: 18
