@@ -1,6 +1,5 @@
 // Loại bỏ import không sử dụng
 import { CheckCircle2, ExternalLink, RotateCcw } from 'lucide-react';
-import { getTxExplorerUrl } from '../lib/ton';
 import { telegram } from '../lib/telegram';
 import { MintStatusChecker } from './MintStatusChecker';
 import { useTonAddress } from '@tonconnect/ui-react';
@@ -19,9 +18,6 @@ export function SuccessSheet({ txHash, onReset, requestId }: SuccessSheetProps) 
   const nftExplorerUrl = userAddress ? 
     `${isTestnet ? 'https://testnet.tonviewer.com' : 'https://tonviewer.com'}/address/${userAddress}/nfts` : 
     `${isTestnet ? 'https://testnet.tonviewer.com' : 'https://tonviewer.com'}`;
-  
-  // URL giao dịch (chỉ là fallback nếu không có địa chỉ người dùng)
-  const txExplorerUrl = getTxExplorerUrl(txHash, isTestnet);
 
   const handleViewNFTs = () => {
     telegram.haptic('light');
