@@ -110,9 +110,18 @@ router.get('/mint-status/:requestId', (req, res) => {
 /**
  * GET /api/user-mints/:userAddress
  * Lấy danh sách các NFT đã mint của một người dùng
+ * Nếu userAddress là 'all', trả về tất cả mint requests
  */
 router.get('/user-mints/:userAddress', (req, res) => {
   const { userAddress } = req.params;
+  
+  // Nếu userAddress là 'all', trả về tất cả mint requests
+  if (userAddress === 'all') {
+    return res.status(200).json({
+      success: true,
+      mints: mintRequests
+    });
+  }
   
   // Lọc danh sách mint request theo địa chỉ người dùng
   const userMints = mintRequests.filter(req => req.userAddress === userAddress);
