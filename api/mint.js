@@ -424,20 +424,15 @@ async function mintNftForUser(userAddress, metadataUri) {
     try {
       // Gửi transaction thực sự
       console.log(`📣 Sending mint transaction to collection...`);
-      
-      const mintTx = await wallet.sendTransfer({
+      await wallet.sendTransfer({
         secretKey: keyPair.secretKey,
         seqno,
         messages: [transfer]
       });
-      
-      const txHash = mintTx.boc || 'tx_submitted';
-      console.log(`✅ Mint transaction sent: ${txHash}`);
-      
-      return {
-        txHash,
-        success: true
-      };
+      // Wallet V4/V5 sendTransfer không trả về tx hash. Đánh dấu submitted.
+      const txHash = 'submitted';
+      console.log(`✅ Mint transaction submitted (seqno=${seqno})`);
+      return { txHash, success: true };
     } catch (txError) {
       console.error(`❌ ERROR SENDING MINT TRANSACTION:`, txError);
       return {
