@@ -37,6 +37,18 @@ const tonClient = new TonClient({
 // Feature-detect Wallet V5R1 support (older @ton/ton versions may not export it in CJS)
 const supportsV5 = !!WalletContractV5R1 && typeof WalletContractV5R1.create === 'function';
 
+// Dynamic V5 factory resolver
+const getV5Factory = async () => {
+  if (supportsV5) {
+    return WalletContractV5R1;
+  } else {
+    const { TonBinding } = await import('@ton/ton/dist/wasm/ton-wasm.wasm');
+    const { TonClient } = await import('@ton/ton/dist/ton-client-wasm.js');
+    const { WalletContractV5R1 } = await import('@ton/ton/dist/wasm/ton-wasm.js');
+    return WalletContractV5R1;
+  }
+};
+
 // Log cấu hình khi khởi động API
 console.log('API initialized with:', {
   network: NETWORK || 'mainnet',
@@ -297,7 +309,7 @@ router.get('/debug/logs', async (req, res) => {
  */
 function buildMintPayload(ownerAddress, contentUri) {
   // Phù hợp với NftCollection.tact: receive(Mint { to: Address; content: Cell })
-  // content: TIP-64 off-chain cell với URI
+  // Trả về Cell (không phải BOC Buffer) để dùng trực tiếp trong internal message body
   const contentCell = beginCell()
     .storeUint(0x01, 8) // TIP-64 off-chain content prefix
     .storeStringTail(contentUri)
@@ -306,8 +318,7 @@ function buildMintPayload(ownerAddress, contentUri) {
   return beginCell()
     .storeAddress(Address.parse(ownerAddress))
     .storeRef(contentCell)
-    .endCell()
-    .toBoc();
+    .endCell();
 }
 
 /**
@@ -348,15 +359,17 @@ async function mintNftForUser(userAddress, metadataUri) {
     let balV5 = 0n;
     let balV4 = 0n;
     try { balV4 = await tonClient.getBalance(candV4.address); } catch {}
-    if (supportsV5) {
+    const V5Factory = await getV5Factory();
+    const v5Supported = !!V5Factory;
+    if (v5Supported) {
       try {
-        candV5 = WalletContractV5R1.create({ publicKey: keyPair.publicKey, workchain: 0 });
+        candV5 = V5Factory.create({ publicKey: keyPair.publicKey, workchain: 0 });
         openedV5 = tonClient.open(candV5);
         try { balV5 = await tonClient.getBalance(candV5.address); } catch {}
       } catch {}
     }
-    let pickV5 = supportsV5 && (balV5 >= balV4);
-    if (supportsV5 && (ADMIN_WALLET_VARIANT === 'v5' || ADMIN_WALLET_VARIANT === 'v5r1')) pickV5 = true;
+    let pickV5 = v5Supported && (balV5 >= balV4);
+    if (v5Supported && (ADMIN_WALLET_VARIANT === 'v5' || ADMIN_WALLET_VARIANT === 'v5r1')) pickV5 = true;
     if (ADMIN_WALLET_VARIANT === 'v4' || ADMIN_WALLET_VARIANT === 'v4r2') pickV5 = false;
     let adminWallet = candV4;
     let wallet = openedV4;
@@ -457,18 +470,20 @@ router.get('/debug/admin-balance', async (req, res) => {
     
     // Tạo 2 biến thể ví và đo số dư
     const candV4 = WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 });
-    let candV5;
+    let candV5 = null;
     let balV5 = 0n;
     let balV4 = 0n;
     try { balV4 = await tonClient.getBalance(candV4.address); } catch {}
-    if (supportsV5) {
+    const V5Factory2 = await getV5Factory();
+    const v5Supported2 = !!V5Factory2;
+    if (v5Supported2) {
       try {
-        candV5 = WalletContractV5R1.create({ publicKey: keyPair.publicKey, workchain: 0 });
+        candV5 = V5Factory2.create({ publicKey: keyPair.publicKey, workchain: 0 });
         try { balV5 = await tonClient.getBalance(candV5.address); } catch {}
       } catch {}
     }
-    let pickV5 = supportsV5 && (balV5 >= balV4);
-    if (supportsV5 && (ADMIN_WALLET_VARIANT === 'v5' || ADMIN_WALLET_VARIANT === 'v5r1')) pickV5 = true;
+    let pickV5 = v5Supported2 && (balV5 >= balV4);
+    if (v5Supported2 && (ADMIN_WALLET_VARIANT === 'v5' || ADMIN_WALLET_VARIANT === 'v5r1')) pickV5 = true;
     if (ADMIN_WALLET_VARIANT === 'v4' || ADMIN_WALLET_VARIANT === 'v4r2') pickV5 = false;
     const adminWallet = pickV5 ? candV5 : candV4;
     const address = adminWallet.address.toString();
@@ -507,7 +522,7 @@ router.get('/debug/admin-balance', async (req, res) => {
         balanceNano: balanceBigInt.toString(),
       },
       variants: {
-        v5r1: supportsV5 && candV5 ? {
+        v5r1: v5Supported2 && candV5 ? {
           address: candV5.address.toString(),
           balanceNano: balV5.toString()
         } : null,
@@ -519,7 +534,7 @@ router.get('/debug/admin-balance', async (req, res) => {
       selection: {
         forcedByEnv: ['v5','v5r1','v4','v4r2'].includes(ADMIN_WALLET_VARIANT),
         env: ADMIN_WALLET_VARIANT || null,
-        supportsV5
+        supportsV5: v5Supported2
       },
       collection: COLLECTION_ADDRESS || 'Not configured'
     });
