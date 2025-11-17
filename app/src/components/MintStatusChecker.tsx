@@ -13,6 +13,9 @@ interface MintRequest {
   status: 'pending' | 'completed' | 'failed';
   mintTxHash?: string;
   error?: string;
+  predictedNftItemAddress?: string;
+  nftItemAddress?: string;
+  mintedAt?: string;
 }
 
 export function MintStatusChecker({ requestId }: MintStatusCheckerProps) {
@@ -86,6 +89,19 @@ export function MintStatusChecker({ requestId }: MintStatusCheckerProps) {
         <p className="text-xs text-blue-600 mt-2">
           Đang xử lý yêu cầu mint. Xin vui lòng đợi trong giây lát.
         </p>
+        {mintRequest?.predictedNftItemAddress && (
+          <div className="mt-3 text-left w-full">
+            <p className="text-xs text-blue-700">Địa chỉ NFT dự kiến:</p>
+            <a
+              className="text-xs font-mono text-blue-700 underline break-all"
+              href={`https://tonviewer.com/${mintRequest.predictedNftItemAddress}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {mintRequest.predictedNftItemAddress}
+            </a>
+          </div>
+        )}
       </div>
     );
   }
@@ -97,14 +113,30 @@ export function MintStatusChecker({ requestId }: MintStatusCheckerProps) {
           <CheckCircle2 className="w-5 h-5" />
           <span>NFT đã mint thành công!</span>
         </div>
-        {mintRequest?.mintTxHash && mintRequest.mintTxHash !== 'tx_submitted' && (
+        {mintRequest?.nftItemAddress && (
           <div className="mt-2 w-full">
-            <p className="text-xs text-green-600">
-              Transaction Hash:
-            </p>
-            <p className="text-xs font-mono text-gray-800 break-all bg-white p-2 rounded border mt-1">
-              {mintRequest.mintTxHash}
-            </p>
+            <p className="text-xs text-green-700">Địa chỉ NFT:</p>
+            <a
+              className="text-xs font-mono text-green-700 underline break-all"
+              href={`https://tonviewer.com/${mintRequest.nftItemAddress}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {mintRequest.nftItemAddress}
+            </a>
+          </div>
+        )}
+        {!mintRequest?.nftItemAddress && mintRequest?.predictedNftItemAddress && (
+          <div className="mt-2 w-full">
+            <p className="text-xs text-green-700">Địa chỉ NFT (dự kiến):</p>
+            <a
+              className="text-xs font-mono text-green-700 underline break-all"
+              href={`https://tonviewer.com/${mintRequest.predictedNftItemAddress}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {mintRequest.predictedNftItemAddress}
+            </a>
           </div>
         )}
         <p className="text-xs text-green-600 mt-2">

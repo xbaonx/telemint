@@ -3,7 +3,7 @@
  * Nhận thông tin giao dịch và mint NFT cho người dùng
  */
 const express = require('express');
-const { Address, toNano, beginCell } = require('@ton/core');
+const { Address, toNano, beginCell, Cell, TupleBuilder } = require('@ton/core');
 const { TonClient } = require('@ton/ton');
 const { mnemonicToWalletKey } = require('@ton/crypto');
 const { WalletContractV4, WalletContractV5R1, internal } = require('@ton/ton');
@@ -57,6 +57,48 @@ console.log('API initialized with:', {
   hasToncenterApiKey: !!TONCENTER_API_KEY
 });
 
+// ===== Helper: read collection getters =====
+async function getNextIndex(collectionAddr) {
+  try {
+    const res = await tonClient.runMethod(collectionAddr, 'get_next_index');
+    // Prefer TupleReader API if available
+    if (res.stack && typeof res.stack.readBigNumber === 'function') {
+      return BigInt(res.stack.readBigNumber());
+    }
+    if (res.stack && typeof res.stack.readNumber === 'function') {
+      return BigInt(res.stack.readNumber());
+    }
+    // Fallback generic
+    const item = res.stack?.items?.[0];
+    if (item && (item.num !== undefined || item.value !== undefined)) {
+      const v = item.num ?? item.value;
+      return BigInt(v.toString());
+    }
+  } catch (e) {
+    console.warn('getNextIndex failed:', e?.message || e);
+  }
+  return null;
+}
+
+async function getItemAddressByIndex(collectionAddr, index) {
+  try {
+    const tb = new TupleBuilder();
+    tb.writeNumber(BigInt(index));
+    const res = await tonClient.runMethod(collectionAddr, 'get_nft_address_by_index', tb.build());
+    if (res.stack && typeof res.stack.readAddress === 'function') {
+      const addr = res.stack.readAddress();
+      return addr.toString();
+    }
+    const item = res.stack?.items?.[0];
+    if (item && item.address) {
+      return Address.parse(item.address).toString();
+    }
+  } catch (e) {
+    console.warn('getItemAddressByIndex failed:', e?.message || e);
+  }
+  return null;
+}
+
 /**
  * POST /api/mint
  * Nhận thông tin mint request từ frontend
@@ -71,6 +113,20 @@ router.post('/mint-request', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
+    // Dự đoán địa chỉ NFT item tiếp theo (best-effort)
+    let predictedNftItemAddress = null;
+    try {
+      if (COLLECTION_ADDRESS) {
+        const nextIdx = await getNextIndex(Address.parse(COLLECTION_ADDRESS));
+        if (nextIdx !== null) {
+          predictedNftItemAddress = await getItemAddressByIndex(Address.parse(COLLECTION_ADDRESS), nextIdx);
+          console.log('🔮 Predicted NFT item for request:', { nextIdx: nextIdx.toString(), predictedNftItemAddress });
+        }
+      }
+    } catch (e) {
+      console.warn('Could not predict NFT item address:', e?.message || e);
+    }
+
     // Lưu mint request vào memory
     const requestId = Date.now().toString();
     const request = {
@@ -80,7 +136,8 @@ router.post('/mint-request', async (req, res) => {
       metadataUri,
       timestamp: timestamp || Date.now(),
       status: 'pending',
-      createdAt: new Date()
+      createdAt: new Date(),
+      predictedNftItemAddress: predictedNftItemAddress || undefined
     };
     
     mintRequests.push(request);
@@ -97,7 +154,8 @@ router.post('/mint-request', async (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Mint request received and being processed',
-      requestId
+      requestId,
+      predictedNftItemAddress
     });
   } catch (error) {
     console.error('❌ Error processing mint request:', error);
@@ -208,6 +266,9 @@ async function processRequest(request) {
       
       request.status = mintResult.success ? 'completed' : 'failed';
       request.mintTxHash = mintResult.txHash;
+      if (mintResult.nftItemAddress) {
+        request.nftItemAddress = mintResult.nftItemAddress;
+      }
       request.mintedAt = new Date();
       
       if (!mintResult.success) {
@@ -305,6 +366,48 @@ router.get('/debug/logs', async (req, res) => {
 });
 
 /**
+ * POST /api/debug/message-hash
+ * Tính hash của external message từ BOC (base64/base64url)
+ */
+router.post('/debug/message-hash', (req, res) => {
+  try {
+    const { boc } = req.body || {};
+    if (!boc || typeof boc !== 'string') {
+      return res.status(400).json({ error: 'Missing boc' });
+    }
+
+    const normalize = (s) => {
+      const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));
+      return s.replace(/-/g, '+').replace(/_/g, '/') + pad;
+    };
+
+    let buf;
+    try {
+      buf = Buffer.from(boc, 'base64');
+      if (buf.length === 0) throw new Error('empty');
+    } catch {
+      buf = Buffer.from(normalize(boc), 'base64');
+    }
+
+    const cell = Cell.fromBoc(buf)[0];
+    const hash = cell.hash();
+    const b64url = Buffer.from(hash)
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/,'');
+
+    return res.status(200).json({
+      success: true,
+      hash_base64url: b64url,
+      hash_hex: Buffer.from(hash).toString('hex')
+    });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+/**
  * Build mint payload theo chuẩn TON NFT - được dùng cho việc mint NFT
  */
 function buildMintPayload(ownerAddress, contentUri) {
@@ -395,6 +498,15 @@ async function mintNftForUser(userAddress, metadataUri) {
     
     // Gửi transaction mint NFT
     const collectionAddress = Address.parse(COLLECTION_ADDRESS);
+    // Dự đoán địa chỉ NFT item trước khi gửi (best-effort)
+    let predictedItemAddress = null;
+    try {
+      const nextIdx = await getNextIndex(collectionAddress);
+      if (nextIdx !== null) {
+        predictedItemAddress = await getItemAddressByIndex(collectionAddress, nextIdx);
+        console.log('🔮 Predicted NFT item address:', predictedItemAddress, '(index =', nextIdx?.toString(), ')');
+      }
+    } catch (_) {}
     // Đọc mint fee từ env (fallback 0) và cộng gas deployment + buffer như contract
     const ENV_MINT_FEE = BigInt(
       (process.env.MINT_PRICE_NANOTON || process.env.VITE_MINT_PRICE_NANOTON || '0')
@@ -432,7 +544,7 @@ async function mintNftForUser(userAddress, metadataUri) {
       // Wallet V4/V5 sendTransfer không trả về tx hash. Đánh dấu submitted.
       const txHash = 'submitted';
       console.log(`✅ Mint transaction submitted (seqno=${seqno})`);
-      return { txHash, success: true };
+      return { txHash, success: true, nftItemAddress: predictedItemAddress };
     } catch (txError) {
       console.error(`❌ ERROR SENDING MINT TRANSACTION:`, txError);
       return {

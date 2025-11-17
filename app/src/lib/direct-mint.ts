@@ -18,6 +18,7 @@ const MINT_PRICE_NANOTON = import.meta.env.VITE_MINT_PRICE_NANOTON || '100000000
  */
 export interface MintResponse extends SendTransactionResponse {
   requestId?: string;
+  predictedNftItemAddress?: string;
 }
 
 export async function sendDirectMintTransaction(
@@ -76,16 +77,18 @@ export async function sendDirectMintTransaction(
     
     // Thông báo cho backend về giao dịch để xử lý mint
     let requestId;
+    let predictedNftItemAddress: string | undefined;
     try {
       const backendResponse = await notifyBackendOfTransaction(result, userAddress, metadataUri);
       requestId = backendResponse?.requestId;
+      predictedNftItemAddress = backendResponse?.predictedNftItemAddress;
       console.log('✅ Backend notified with request ID:', requestId);
     } catch (notifyError) {
       console.error('⚠️ Failed to notify backend (but transaction was sent):', notifyError);
       // Không throw lỗi ở đây, vì giao dịch đã được gửi thành công
     }
     
-    return { ...result, requestId } as MintResponse;
+    return { ...result, requestId, predictedNftItemAddress } as MintResponse;
   } catch (error: any) {
     console.error('❌ Transaction failed:', error);
     
@@ -111,7 +114,7 @@ async function notifyBackendOfTransaction(
   txResult: SendTransactionResponse, 
   userAddress: string,
   metadataUri: string
-): Promise<{ requestId: string } | undefined> {
+): Promise<{ requestId: string; predictedNftItemAddress?: string } | undefined> {
   // Xác định endpoint API (tự động sử dụng API cùng domain nếu không cấu hình API_ENDPOINT)
   const apiUrl = API_ENDPOINT 
     ? `${API_ENDPOINT}/api/mint-request`
@@ -141,7 +144,7 @@ async function notifyBackendOfTransaction(
     
     // Return requestId from backend
     if (responseData && responseData.requestId) {
-      return { requestId: responseData.requestId };
+      return { requestId: responseData.requestId, predictedNftItemAddress: responseData.predictedNftItemAddress };
     }
     
     return undefined;
