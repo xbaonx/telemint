@@ -17,12 +17,12 @@ const mintRequests = [];
 
 // Lấy biến môi trường
 require('dotenv').config({ path: path.join(__dirname, '..', 'contracts', '.env') });
-const { 
-  COLLECTION_ADDRESS,
-  MNEMONIC,
-  TONCENTER_API_KEY,
-  NETWORK
-} = process.env;
+// Hỗ trợ cả biến môi trường dạng backend (COLLECTION_ADDRESS/NETWORK)
+// và dạng frontend VITE_* khi deploy trên Render/Netlify
+const COLLECTION_ADDRESS = process.env.COLLECTION_ADDRESS || process.env.VITE_TON_COLLECTION_ADDRESS;
+const MNEMONIC = process.env.MNEMONIC;
+const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || process.env.VITE_TONCENTER_API_KEY;
+const NETWORK = process.env.NETWORK || process.env.VITE_NETWORK || 'mainnet';
 
 const isTestnet = NETWORK === 'testnet';
 const endpoint = isTestnet ? 'https://testnet.toncenter.com/api/v2/jsonRPC' : 'https://toncenter.com/api/v2/jsonRPC';
@@ -292,13 +292,16 @@ router.get('/debug/logs', async (req, res) => {
  * Build mint payload theo chuẩn TON NFT - được dùng cho việc mint NFT
  */
 function buildMintPayload(ownerAddress, contentUri) {
-  // Format: create a mint_body payload in accordance with the collection contract
-  // Đây là payload chuẩn cho việc mint NFT trên TON
+  // Phù hợp với NftCollection.tact: receive(Mint { to: Address; content: Cell })
+  // content: TIP-64 off-chain cell với URI
+  const contentCell = beginCell()
+    .storeUint(0x01, 8) // TIP-64 off-chain content prefix
+    .storeStringTail(contentUri)
+    .endCell();
+
   return beginCell()
-    .storeUint(1, 32) // op code for mint
-    .storeUint(0, 64) // query id
-    .storeAddress(Address.parse(ownerAddress)) // owner address
-    .storeRef(beginCell().storeURI(contentUri).endCell())
+    .storeAddress(Address.parse(ownerAddress))
+    .storeRef(contentCell)
     .endCell()
     .toBoc();
 }
@@ -338,6 +341,7 @@ async function mintNftForUser(userAddress, metadataUri) {
       publicKey: keyPair.publicKey,
       workchain: 0
     });
+    const wallet = tonClient.open(adminWallet);
     console.log(`✅ Admin wallet contract created: ${adminWallet.address.toString()}`);
     
     // Tạo payload cho việc mint NFT
@@ -356,8 +360,15 @@ async function mintNftForUser(userAddress, metadataUri) {
     
     // Gửi transaction mint NFT
     const collectionAddress = Address.parse(COLLECTION_ADDRESS);
-    const mintFee = toNano('0.5'); // 0.5 TON for mint
-    const seqno = await tonClient.getSeqno(adminWallet.address);
+    // Đọc mint fee từ env (fallback 0) và cộng gas deployment + buffer như contract
+    const ENV_MINT_FEE = BigInt(
+      (process.env.MINT_PRICE_NANOTON || process.env.VITE_MINT_PRICE_NANOTON || '0')
+    );
+    const DEPLOY_ITEM_VALUE = 300_000_000n; // 0.3 TON
+    const GAS_BUFFER = 50_000_000n; // 0.05 TON
+    const requiredValue = ENV_MINT_FEE + DEPLOY_ITEM_VALUE + GAS_BUFFER;
+    console.log(`⚖️ Calculated required value (nanoton): ${requiredValue.toString()} (mintFee=${ENV_MINT_FEE})`);
+    const seqno = await wallet.getSeqno();
     
     console.log(`🔌 Admin wallet address: ${adminWallet.address.toString()}`);
     console.log(`🔌 Collection address: ${collectionAddress.toString()}`);
@@ -370,7 +381,7 @@ async function mintNftForUser(userAddress, metadataUri) {
     // Tạo message
     const transfer = internal({
       to: collectionAddress,
-      value: mintFee, // 0.5 TON
+      value: requiredValue, // mintFee + 0.35 TON
       body: mintPayload,
       bounce: true
     });
@@ -379,7 +390,7 @@ async function mintNftForUser(userAddress, metadataUri) {
       // Gửi transaction thực sự
       console.log(`📣 Sending mint transaction to collection...`);
       
-      const mintTx = await adminWallet.sendTransfer({
+      const mintTx = await wallet.sendTransfer({
         secretKey: keyPair.secretKey,
         seqno,
         messages: [transfer]
