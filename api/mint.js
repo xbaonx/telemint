@@ -462,7 +462,9 @@ router.get('/debug/admin-balance', async (req, res) => {
         throw new Error('TonAPI response missing balance field');
       }
     }
-    const balanceTON = (Number(balance) / 1_000_000_000).toFixed(4);
+    // Normalize balance to BigInt for consistent math, then format
+    const balanceBigInt = BigInt(balance.toString());
+    const balanceTON = (Number(balanceBigInt) / 1_000_000_000).toFixed(4);
     
     return res.status(200).json({
       success: true,
@@ -472,7 +474,7 @@ router.get('/debug/admin-balance', async (req, res) => {
       adminWallet: {
         address,
         balance: balanceTON + ' TON',
-        balanceNano: balance
+        balanceNano: balanceBigInt.toString()
       },
       collection: COLLECTION_ADDRESS || 'Not configured'
     });
