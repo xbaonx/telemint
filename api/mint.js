@@ -80,6 +80,26 @@ async function getNextIndex(collectionAddr) {
   return null;
 }
 
+async function getMintFee(collectionAddr) {
+  try {
+    const res = await tonClient.runMethod(collectionAddr, 'get_mint_fee');
+    if (res.stack && typeof res.stack.readBigNumber === 'function') {
+      return BigInt(res.stack.readBigNumber());
+    }
+    if (res.stack && typeof res.stack.readNumber === 'function') {
+      return BigInt(res.stack.readNumber());
+    }
+    const item = res.stack?.items?.[0];
+    if (item && (item.num !== undefined || item.value !== undefined)) {
+      const v = item.num ?? item.value;
+      return BigInt(v.toString());
+    }
+  } catch (e) {
+    console.warn('getMintFee failed:', e?.message || e);
+  }
+  return null;
+}
+
 async function getItemAddressByIndex(collectionAddr, index) {
   try {
     const tb = new TupleBuilder();
@@ -507,14 +527,14 @@ async function mintNftForUser(userAddress, metadataUri) {
         console.log('🔮 Predicted NFT item address:', predictedItemAddress, '(index =', nextIdx?.toString(), ')');
       }
     } catch (_) {}
-    // Đọc mint fee từ env (fallback 0) và cộng gas deployment + buffer như contract
-    const ENV_MINT_FEE = BigInt(
-      (process.env.MINT_PRICE_NANOTON || process.env.VITE_MINT_PRICE_NANOTON || '0')
-    );
+    // Lấy mint fee từ on-chain nếu có, fallback ENV nếu cần
+    let mintFeeOnChain = await getMintFee(collectionAddress);
+    const ENV_MINT_FEE = BigInt((process.env.MINT_PRICE_NANOTON || process.env.VITE_MINT_PRICE_NANOTON || '0'));
+    const EFFECTIVE_MINT_FEE = mintFeeOnChain ?? ENV_MINT_FEE; // ưu tiên on-chain
     const DEPLOY_ITEM_VALUE = 300_000_000n; // 0.3 TON
     const GAS_BUFFER = 50_000_000n; // 0.05 TON
-    const requiredValue = ENV_MINT_FEE + DEPLOY_ITEM_VALUE + GAS_BUFFER;
-    console.log(`⚖️ Calculated required value (nanoton): ${requiredValue.toString()} (mintFee=${ENV_MINT_FEE})`);
+    const requiredValue = EFFECTIVE_MINT_FEE + DEPLOY_ITEM_VALUE + GAS_BUFFER;
+    console.log(`⚖️ Calculated required value (nanoton): ${requiredValue.toString()} (mintFeeOnChain=${mintFeeOnChain?.toString?.() || 'null'} envMintFee=${ENV_MINT_FEE})`);
     const seqno = await wallet.getSeqno();
     
     console.log(`🔌 Admin wallet address: ${adminWallet.address.toString()}`);

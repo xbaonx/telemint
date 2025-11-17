@@ -12,6 +12,29 @@ message Transfer {
     forwardPayload: Slice as remaining;
 }
 
+// Message sent by NftCollection at deployment to finalize owner and content
+message InitFromCollection {
+    collection: Address;
+    index: Int as uint64;
+    to: Address;
+    content: Cell;
+}
+
+extend NftItem {
+    // Initialize item data after deployment. Body layout matches NftCollection send:
+    // .storeAddress(myAddress())
+    // .storeUint(self.nextIndex, 64)
+    // .storeAddress(msg.to)
+    // .storeRef(msg.content)
+    receive(msg: InitFromCollection) {
+        let ctx: Context = context();
+        // Only collection can initialize
+        require(ctx.sender == self.collection, "Only collection can init item");
+        self.owner = msg.to;
+        self.content = msg.content;
+    }
+}
+
 contract NftItem with Deployable {
     collection: Address;
     index: Int as uint64;
