@@ -34,6 +34,9 @@ const tonClient = new TonClient({
   apiKey: TONCENTER_API_KEY
 });
 
+// Feature-detect Wallet V5R1 support (older @ton/ton versions may not export it in CJS)
+const supportsV5 = !!WalletContractV5R1 && typeof WalletContractV5R1.create === 'function';
+
 // Log cấu hình khi khởi động API
 console.log('API initialized with:', {
   network: NETWORK || 'mainnet',
@@ -338,19 +341,29 @@ async function mintNftForUser(userAddress, metadataUri) {
     console.log(`✅ Admin wallet key generated`);
     
     // Tạo và chọn biến thể ví có số dư (ưu tiên V5R1 nếu có tiền)
-    const candV5 = WalletContractV5R1.create({ publicKey: keyPair.publicKey, workchain: 0 });
     const candV4 = WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 });
-    const openedV5 = tonClient.open(candV5);
     const openedV4 = tonClient.open(candV4);
+    let candV5 = null;
+    let openedV5 = null;
     let balV5 = 0n;
     let balV4 = 0n;
-    try { balV5 = await tonClient.getBalance(candV5.address); } catch {}
     try { balV4 = await tonClient.getBalance(candV4.address); } catch {}
-    let pickV5 = balV5 >= balV4;
-    if (ADMIN_WALLET_VARIANT === 'v5' || ADMIN_WALLET_VARIANT === 'v5r1') pickV5 = true;
+    if (supportsV5) {
+      try {
+        candV5 = WalletContractV5R1.create({ publicKey: keyPair.publicKey, workchain: 0 });
+        openedV5 = tonClient.open(candV5);
+        try { balV5 = await tonClient.getBalance(candV5.address); } catch {}
+      } catch {}
+    }
+    let pickV5 = supportsV5 && (balV5 >= balV4);
+    if (supportsV5 && (ADMIN_WALLET_VARIANT === 'v5' || ADMIN_WALLET_VARIANT === 'v5r1')) pickV5 = true;
     if (ADMIN_WALLET_VARIANT === 'v4' || ADMIN_WALLET_VARIANT === 'v4r2') pickV5 = false;
-    const adminWallet = pickV5 ? candV5 : candV4;
-    const wallet = pickV5 ? openedV5 : openedV4;
+    let adminWallet = candV4;
+    let wallet = openedV4;
+    if (pickV5 && candV5 && openedV5) {
+      adminWallet = candV5;
+      wallet = openedV5;
+    }
     console.log(`✅ Admin wallet contract created: ${adminWallet.address.toString()}`);
     
     // Tạo payload cho việc mint NFT
@@ -443,13 +456,20 @@ router.get('/debug/admin-balance', async (req, res) => {
     const keyPair = await mnemonicToWalletKey(MNEMONIC.split(' '));
     
     // Tạo 2 biến thể ví và đo số dư
-    const candV5 = WalletContractV5R1.create({ publicKey: keyPair.publicKey, workchain: 0 });
     const candV4 = WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 });
+    let candV5;
     let balV5 = 0n;
     let balV4 = 0n;
-    try { balV5 = await tonClient.getBalance(candV5.address); } catch {}
     try { balV4 = await tonClient.getBalance(candV4.address); } catch {}
-    const pickV5 = balV5 >= balV4;
+    if (supportsV5) {
+      try {
+        candV5 = WalletContractV5R1.create({ publicKey: keyPair.publicKey, workchain: 0 });
+        try { balV5 = await tonClient.getBalance(candV5.address); } catch {}
+      } catch {}
+    }
+    let pickV5 = supportsV5 && (balV5 >= balV4);
+    if (supportsV5 && (ADMIN_WALLET_VARIANT === 'v5' || ADMIN_WALLET_VARIANT === 'v5r1')) pickV5 = true;
+    if (ADMIN_WALLET_VARIANT === 'v4' || ADMIN_WALLET_VARIANT === 'v4r2') pickV5 = false;
     const adminWallet = pickV5 ? candV5 : candV4;
     const address = adminWallet.address.toString();
     
@@ -487,10 +507,10 @@ router.get('/debug/admin-balance', async (req, res) => {
         balanceNano: balanceBigInt.toString(),
       },
       variants: {
-        v5r1: {
+        v5r1: supportsV5 && candV5 ? {
           address: candV5.address.toString(),
           balanceNano: balV5.toString()
-        },
+        } : null,
         v4r2: {
           address: candV4.address.toString(),
           balanceNano: balV4.toString()
@@ -498,7 +518,8 @@ router.get('/debug/admin-balance', async (req, res) => {
       },
       selection: {
         forcedByEnv: ['v5','v5r1','v4','v4r2'].includes(ADMIN_WALLET_VARIANT),
-        env: ADMIN_WALLET_VARIANT || null
+        env: ADMIN_WALLET_VARIANT || null,
+        supportsV5
       },
       collection: COLLECTION_ADDRESS || 'Not configured'
     });
