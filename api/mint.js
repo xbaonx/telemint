@@ -6,7 +6,7 @@ const express = require('express');
 const { Address, toNano, beginCell } = require('@ton/core');
 const { TonClient } = require('@ton/ton');
 const { mnemonicToWalletKey } = require('@ton/crypto');
-const { WalletContractV4, internal } = require('@ton/ton');
+const { WalletContractV4, WalletContractV5R1, internal } = require('@ton/ton');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -23,6 +23,7 @@ const COLLECTION_ADDRESS = process.env.COLLECTION_ADDRESS || process.env.VITE_TO
 const MNEMONIC = process.env.MNEMONIC;
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || process.env.VITE_TONCENTER_API_KEY;
 const NETWORK = process.env.NETWORK || process.env.VITE_NETWORK || 'mainnet';
+const ADMIN_WALLET_VARIANT = (process.env.ADMIN_WALLET_VARIANT || '').toLowerCase();
 
 const isTestnet = NETWORK === 'testnet';
 const endpoint = isTestnet ? 'https://testnet.toncenter.com/api/v2/jsonRPC' : 'https://toncenter.com/api/v2/jsonRPC';
@@ -336,12 +337,20 @@ async function mintNftForUser(userAddress, metadataUri) {
     const keyPair = await mnemonicToWalletKey(MNEMONIC.split(' '));
     console.log(`✅ Admin wallet key generated`);
     
-    // Tạo admin wallet contract
-    const adminWallet = WalletContractV4.create({
-      publicKey: keyPair.publicKey,
-      workchain: 0
-    });
-    const wallet = tonClient.open(adminWallet);
+    // Tạo và chọn biến thể ví có số dư (ưu tiên V5R1 nếu có tiền)
+    const candV5 = WalletContractV5R1.create({ publicKey: keyPair.publicKey, workchain: 0 });
+    const candV4 = WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 });
+    const openedV5 = tonClient.open(candV5);
+    const openedV4 = tonClient.open(candV4);
+    let balV5 = 0n;
+    let balV4 = 0n;
+    try { balV5 = await tonClient.getBalance(candV5.address); } catch {}
+    try { balV4 = await tonClient.getBalance(candV4.address); } catch {}
+    let pickV5 = balV5 >= balV4;
+    if (ADMIN_WALLET_VARIANT === 'v5' || ADMIN_WALLET_VARIANT === 'v5r1') pickV5 = true;
+    if (ADMIN_WALLET_VARIANT === 'v4' || ADMIN_WALLET_VARIANT === 'v4r2') pickV5 = false;
+    const adminWallet = pickV5 ? candV5 : candV4;
+    const wallet = pickV5 ? openedV5 : openedV4;
     console.log(`✅ Admin wallet contract created: ${adminWallet.address.toString()}`);
     
     // Tạo payload cho việc mint NFT
@@ -433,22 +442,24 @@ router.get('/debug/admin-balance', async (req, res) => {
     // Generate admin wallet from mnemonic
     const keyPair = await mnemonicToWalletKey(MNEMONIC.split(' '));
     
-    // Tạo admin wallet contract
-    const adminWallet = WalletContractV4.create({
-      publicKey: keyPair.publicKey,
-      workchain: 0
-    });
-    
+    // Tạo 2 biến thể ví và đo số dư
+    const candV5 = WalletContractV5R1.create({ publicKey: keyPair.publicKey, workchain: 0 });
+    const candV4 = WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 });
+    let balV5 = 0n;
+    let balV4 = 0n;
+    try { balV5 = await tonClient.getBalance(candV5.address); } catch {}
+    try { balV4 = await tonClient.getBalance(candV4.address); } catch {}
+    const pickV5 = balV5 >= balV4;
+    const adminWallet = pickV5 ? candV5 : candV4;
     const address = adminWallet.address.toString();
     
-    // Get balance (Toncenter RPC first)
+    // Lấy số dư cho ví được chọn, có fallback TonAPI
     let balance;
     let source = 'toncenter';
     try {
       balance = await tonClient.getBalance(adminWallet.address);
     } catch (e) {
       console.warn('Toncenter getBalance failed, falling back to TonAPI:', e?.message || e);
-      // Fallback to TonAPI v2
       source = 'tonapi_fallback';
       const tonapiUrl = `https://tonapi.io/v2/accounts/${address}`;
       const resp = await fetch(tonapiUrl);
@@ -456,13 +467,11 @@ router.get('/debug/admin-balance', async (req, res) => {
         throw new Error(`TonAPI fallback failed: HTTP ${resp.status}`);
       }
       const json = await resp.json();
-      // TonAPI returns balance in nanotons under field 'balance'
       balance = json?.balance ?? json?.account?.balance;
       if (balance === undefined || balance === null) {
         throw new Error('TonAPI response missing balance field');
       }
     }
-    // Normalize balance to BigInt for consistent math, then format
     const balanceBigInt = BigInt(balance.toString());
     const balanceTON = (Number(balanceBigInt) / 1_000_000_000).toFixed(4);
     
@@ -472,9 +481,24 @@ router.get('/debug/admin-balance', async (req, res) => {
       rpcEndpoint: source,
       hasToncenterApiKey: !!TONCENTER_API_KEY,
       adminWallet: {
+        variant: pickV5 ? 'v5r1' : 'v4r2',
         address,
         balance: balanceTON + ' TON',
-        balanceNano: balanceBigInt.toString()
+        balanceNano: balanceBigInt.toString(),
+      },
+      variants: {
+        v5r1: {
+          address: candV5.address.toString(),
+          balanceNano: balV5.toString()
+        },
+        v4r2: {
+          address: candV4.address.toString(),
+          balanceNano: balV4.toString()
+        }
+      },
+      selection: {
+        forcedByEnv: ['v5','v5r1','v4','v4r2'].includes(ADMIN_WALLET_VARIANT),
+        env: ADMIN_WALLET_VARIANT || null
       },
       collection: COLLECTION_ADDRESS || 'Not configured'
     });
