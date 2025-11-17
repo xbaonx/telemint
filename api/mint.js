@@ -441,12 +441,34 @@ router.get('/debug/admin-balance', async (req, res) => {
     
     const address = adminWallet.address.toString();
     
-    // Get balance
-    const balance = await tonClient.getBalance(adminWallet.address);
+    // Get balance (Toncenter RPC first)
+    let balance;
+    let source = 'toncenter';
+    try {
+      balance = await tonClient.getBalance(adminWallet.address);
+    } catch (e) {
+      console.warn('Toncenter getBalance failed, falling back to TonAPI:', e?.message || e);
+      // Fallback to TonAPI v2
+      source = 'tonapi_fallback';
+      const tonapiUrl = `https://tonapi.io/v2/accounts/${address}`;
+      const resp = await fetch(tonapiUrl);
+      if (!resp.ok) {
+        throw new Error(`TonAPI fallback failed: HTTP ${resp.status}`);
+      }
+      const json = await resp.json();
+      // TonAPI returns balance in nanotons under field 'balance'
+      balance = json?.balance ?? json?.account?.balance;
+      if (balance === undefined || balance === null) {
+        throw new Error('TonAPI response missing balance field');
+      }
+    }
     const balanceTON = (Number(balance) / 1_000_000_000).toFixed(4);
     
     return res.status(200).json({
       success: true,
+      network: NETWORK || 'mainnet',
+      rpcEndpoint: source,
+      hasToncenterApiKey: !!TONCENTER_API_KEY,
       adminWallet: {
         address,
         balance: balanceTON + ' TON',
@@ -455,8 +477,14 @@ router.get('/debug/admin-balance', async (req, res) => {
       collection: COLLECTION_ADDRESS || 'Not configured'
     });
   } catch (err) {
+    console.error('admin-balance error:', err);
     return res.status(500).json({
-      error: `Error checking admin wallet: ${err.message}`
+      error: `Error checking admin wallet: ${err.message}`,
+      details: {
+        network: NETWORK || 'mainnet',
+        hasMnemonic: !!MNEMONIC,
+        hasToncenterApiKey: !!TONCENTER_API_KEY
+      }
     });
   }
 });
