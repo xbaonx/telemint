@@ -1,13 +1,13 @@
 {
-  "url": "https://telemint.onrender.com",
+  "url": "https://minbox.onrender.com",
   "name": "Mint Box",
-  "iconUrl": "https://telemint.onrender.com/vite.svg",
-  "termsOfUseUrl": "https://telemint.onrender.com/terms",
-  "privacyPolicyUrl": "https://telemint.onrender.com/privacy",
-  
+  "iconUrl": "https://minbox.onrender.com/vite.svg",
+  "termsOfUseUrl": "https://minbox.onrender.com/terms",
+  "privacyPolicyUrl": "https://minbox.onrender.com/privacy",
+
   "telegram_bot_username": "mintboxx_bot",
-  
+
   "version": "1.0.0",
-  
+
   "return_strategy": "back"
 }

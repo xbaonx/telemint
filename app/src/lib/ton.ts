@@ -9,8 +9,9 @@ import type { SendTransactionResponse } from '@tonconnect/ui-react';
 
 const COLLECTION_ADDRESS = import.meta.env.VITE_TON_COLLECTION_ADDRESS;
 const MINT_PRICE_NANOTON = import.meta.env.VITE_MINT_PRICE_NANOTON || '1000000000';
-const TONAPI_BASE = 'https://tonapi.io';
-const TONCENTER_BASE = 'https://toncenter.com/api/v3';
+const NETWORK = (import.meta.env.VITE_NETWORK || 'mainnet').toLowerCase();
+const TONAPI_BASE = NETWORK === 'testnet' ? 'https://testnet.tonapi.io' : 'https://tonapi.io';
+const TONCENTER_BASE = NETWORK === 'testnet' ? 'https://testnet.toncenter.com/api/v3' : 'https://toncenter.com/api/v3';
 
 /**
  * Build mint message payload
@@ -266,7 +267,7 @@ export function formatAddress(address: string): string {
 /**
  * Get TON viewer URL
  */
-export function getTonViewerUrl(address: string, testnet: boolean = true): string {
+export function getTonViewerUrl(address: string, testnet: boolean = NETWORK === 'testnet'): string {
   const base = testnet ? 'https://testnet.tonviewer.com' : 'https://tonviewer.com';
   return `${base}/${address}`;
 }
@@ -274,7 +275,7 @@ export function getTonViewerUrl(address: string, testnet: boolean = true): strin
 /**
  * Get transaction explorer URL
  */
-export function getTxExplorerUrl(txHash: string, testnet: boolean = true): string {
+export function getTxExplorerUrl(txHash: string, testnet: boolean = NETWORK === 'testnet'): string {
   const base = testnet ? 'https://testnet.tonviewer.com' : 'https://tonviewer.com';
   if (!txHash) return base;
   // If it's a BOC (starts with te6cc...) returned by wallet, explorers can't open it as tx id.
