@@ -4,7 +4,6 @@ import { Wallet } from 'lucide-react';
 import { UploadCard } from './components/UploadCard';
 import { MintButton } from './components/MintButton';
 import { SuccessSheet } from './components/SuccessSheet';
-import { DirectMintInfo } from './components/DirectMintInfo';
 import { uploadToIPFS } from './lib/ipfs';
 import { getMintPriceNanoton, formatAddress, registerDebugHelpers, getCollectionAddress, buildMintPayload, getMintFeeOnChain } from './lib/ton';
 import { telegram } from './lib/telegram';
@@ -16,7 +15,6 @@ function App() {
   const [tonConnectUI] = useTonConnectUI();
   const wallet = useTonWallet();
   const [state, setState] = useState<AppState>('idle');
-  const [mintRequestId, setMintRequestId] = useState<string | undefined>();
 
   // File state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -218,11 +216,10 @@ function App() {
   };
 
   // Handle mint success
-  const handleMintSuccess = (hash: string, requestId?: string) => {
+  const handleMintSuccess = (hash: string) => {
     setTxHash(hash);
-    setMintRequestId(requestId);
     setState('success');
-    console.log('🖊️ Mint successful:', { hash, requestId });
+    console.log('🖊️ Mint successful:', { hash });
   };
 
   // Handle reset
@@ -233,7 +230,6 @@ function App() {
     setNftName('My Telegram NFT');
     setNftDescription('');
     setTxHash('');
-    setMintRequestId(undefined);
     setState('idle');
   };
 
@@ -259,7 +255,7 @@ function App() {
 
         {/* Main Content */}
         {state === 'success' ? (
-          <SuccessSheet txHash={txHash} requestId={mintRequestId} onReset={handleReset} />
+          <SuccessSheet txHash={txHash} onReset={handleReset} />
         ) : (
           <div className="space-y-4">
             {/* Debug tools */}
@@ -402,8 +398,7 @@ function App() {
                   </p>
                 )}
                 
-                {/* Thông tin Direct Mint */}
-                <DirectMintInfo />
+                
               </div>
             )}
           </div>
