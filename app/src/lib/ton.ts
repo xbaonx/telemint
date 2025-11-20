@@ -57,17 +57,14 @@ export async function sendMintTransaction(
   // Build payload
   const payload = buildMintPayload(toAddress, metadataUri);
 
-  // Get mint fee from environment variable and add overhead
-  const onchainFee = BigInt(MINT_PRICE_NANOTON);
-  const MINT_OVERHEAD_NANOTON = 360000000n; // 0.36 TON (extra buffer for inbound fwd fee)
-  const amount = (onchainFee + MINT_OVERHEAD_NANOTON).toString();
+  // Send a fixed amount of TON for the mint transaction. The contract will refund any excess.
+  const amount = toNano('0.5').toString();
 
   console.log('📤 Sending mint transaction:', {
     collection: COLLECTION_ADDRESS,
     to: toAddress,
     amount: formatNanoTon(amount),
     metadataUri,
-    onchainFee: formatNanoTon(onchainFee.toString()),
   });
 
   // Send transaction

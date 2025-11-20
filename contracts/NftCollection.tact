@@ -33,6 +33,7 @@ contract NftCollection with Deployable, Ownable {
     // Receives mint request with payment
     receive(msg: Mint) {
         let ctx: Context = context();
+        let sender: Address = ctx.sender;
         
         // Validate payment: must cover mint fee + gas for deployment + buffer
         let requiredAmount: Int = self.mintFee + DEPLOY_ITEM_VALUE + GAS_BUFFER;
@@ -40,6 +41,9 @@ contract NftCollection with Deployable, Ownable {
             ctx.value >= requiredAmount,
             "Insufficient payment: need at least mintFee + deployment gas"
         );
+
+        // Calculate refund amount
+        let refundAmount: Int = ctx.value - requiredAmount;
 
         // Build NFT Item state init
         let itemInit: StateInit = self.getNftItemInit(self.nextIndex);
@@ -64,8 +68,19 @@ contract NftCollection with Deployable, Ownable {
         // Increment index for next NFT
         self.nextIndex = self.nextIndex + 1;
 
-        // Keep remaining value as revenue (no refund)
-        // This is the collection's earnings
+        // Refund excess amount to the sender
+        if (refundAmount > 0) {
+            send(SendParameters{
+                to: sender,
+                value: refundAmount,
+                mode: SendIgnoreErrors, // Ignore errors on refund to not fail the whole tx
+                bounce: false,
+                body: beginCell()
+                    .storeUint(0, 32) // op: text comment
+                    .storeSlice("Mint refund".asSlice())
+                    .endCell()
+            });
+        }
     }
 
     // ============== ADMIN FUNCTIONS ==============
