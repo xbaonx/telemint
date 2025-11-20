@@ -21,14 +21,15 @@ export function buildMintPayload(toAddress: string, metadataUri: string): string
   try {
     const to = Address.parse(toAddress);
 
-    // Đơn giản hóa: sử dụng cấu trúc đơn giản hơn cho metadata URI
     const contentCell = beginCell()
       .storeUint(0x01, 8) // TIP-64 off-chain content prefix
-      .storeStringTail(metadataUri) // IPFS URI as string
+      .storeStringTail(metadataUri)
       .endCell();
 
-    // Build main message body theo NftCollection.tact: Mint{ to: Address; content: Cell }
+    // Build main message body according to NftCollection.tact: op, query_id, to, content
     const messageBody = beginCell()
+      .storeUint(1, 32) // op: mint
+      .storeUint(0, 64) // query_id
       .storeAddress(to)
       .storeRef(contentCell)
       .endCell();
