@@ -5,7 +5,7 @@ import { UploadCard } from './components/UploadCard';
 import { MintButton } from './components/MintButton';
 import { SuccessSheet } from './components/SuccessSheet';
 import { uploadToIPFS } from './lib/ipfs';
-import { getMintPriceNanoton, formatAddress, registerDebugHelpers, getCollectionAddress, buildMintPayload, getMintFeeOnChain } from './lib/ton';
+import { getMintPriceNanoton, formatAddress, registerDebugHelpers, getCollectionAddress, buildMintPayload } from './lib/ton';
 import { telegram } from './lib/telegram';
 
 type AppState = 'idle' | 'uploading' | 'ready' | 'minting' | 'success';
@@ -64,15 +64,6 @@ function App() {
     }
   };
 
-  const handleReadMintFee = async () => {
-    try {
-      const fee = await getMintFeeOnChain(collectionAddress);
-      const ton = Number(fee) / 1_000_000_000;
-      alert(`On-chain mint fee: ${ton.toFixed(4)} TON`);
-    } catch (e: any) {
-      alert(e?.message || 'Failed to read on-chain mint fee');
-    }
-  };
 
   const handleDebugPayloadToSelf = async () => {
     try {
@@ -141,8 +132,8 @@ function App() {
       }
       const payload = buildMintPayload(userAddress, metadataUri);
       const send = (window as any).debugSend;
-      // Đọc mint fee on-chain và cộng overhead 0.36 TON
-      const onchainFee = await getMintFeeOnChain(collectionAddress);
+      // Use the mint price from environment variables
+      const onchainFee = BigInt(getMintPriceNanoton());
       const overhead = 360000000n;
       const totalNano = onchainFee + overhead;
       const amountTon = (Number(totalNano) / 1_000_000_000).toFixed(2);
@@ -281,9 +272,6 @@ function App() {
                   </button>
                   <button onClick={handleDebugPayloadToSelf} className="btn-outline text-xs">
                     Send 0.05 TON + payload to My Wallet
-                  </button>
-                  <button onClick={handleReadMintFee} className="btn-outline text-xs">
-                    Read on-chain mint fee
                   </button>
                   <button onClick={handleOpenWalletModal} className="btn-outline text-xs">
                     Switch Wallet (Tonkeeper)
