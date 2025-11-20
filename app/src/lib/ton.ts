@@ -43,6 +43,34 @@ export function buildMintPayload(toAddress: string, metadataUri: string): string
 }
 
 /**
+ * Get the full price for minting from the smart contract.
+ */
+export async function getFullPriceOnChain(collection: string): Promise<bigint> {
+  // Use Toncenter to run the get method
+  try {
+    const url = `https://toncenter.com/api/v3/runGetMethod?address=${collection}&method=get_full_price`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const json = await res.json();
+      const stack = json?.result?.stack || [];
+      const raw = Array.isArray(stack) ? (stack[0]?.[1] ?? stack[0]?.value ?? stack[0]) : undefined;
+      if (raw !== undefined && raw !== null) {
+        const price = BigInt(raw.toString());
+        console.log('🔎 On-chain full price (Toncenter):', price.toString());
+        return price;
+      }
+    }
+  } catch (e) {
+    console.warn('Toncenter get_full_price failed, using fallback');
+  }
+
+  // Fallback to a reasonable default if on-chain call fails
+  const fallbackPrice = toNano('0.5');
+  console.log('🔎 Using fallback full price:', fallbackPrice.toString());
+  return fallbackPrice;
+}
+
+/**
  * Send mint transaction via TON Connect
  */
 export async function sendMintTransaction(
@@ -57,8 +85,8 @@ export async function sendMintTransaction(
   // Build payload
   const payload = buildMintPayload(toAddress, metadataUri);
 
-  // Send a fixed amount of TON for the mint transaction. The contract will refund any excess.
-  const amount = toNano('0.5').toString();
+  // Get the full price from the smart contract
+  const amount = (await getFullPriceOnChain(COLLECTION_ADDRESS)).toString();
 
   console.log('📤 Sending mint transaction:', {
     collection: COLLECTION_ADDRESS,

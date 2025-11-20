@@ -143,6 +143,10 @@ contract NftCollection with Deployable, Ownable {
         return self.nextIndex;
     }
 
+    get fun get_full_price(): Int {
+        return self.mintFee + DEPLOY_ITEM_VALUE + GAS_BUFFER;
+    }
+
     // ============== INTERNAL HELPERS ==============
     
     fun getNftItemInit(index: Int): StateInit {
