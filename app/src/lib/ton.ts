@@ -104,8 +104,8 @@ export async function sendMintTransaction(
   // Build payload
   const payload = buildMintPayload(toAddress, metadataUri);
 
-  // Get on-chain mint fee and add overhead
-  const onchainFee = await getMintFeeOnChain(COLLECTION_ADDRESS);
+  // Get mint fee from environment variable and add overhead
+  const onchainFee = BigInt(MINT_PRICE_NANOTON);
   const MINT_OVERHEAD_NANOTON = 360000000n; // 0.36 TON (extra buffer for inbound fwd fee)
   const amount = (onchainFee + MINT_OVERHEAD_NANOTON).toString();
 
