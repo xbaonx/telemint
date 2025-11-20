@@ -129,6 +129,8 @@ export async function sendMintTransaction(
     ],
   };
 
+  console.log('🔴 DEBUG: Transaction object sent to wallet:', JSON.stringify(transaction, null, 2));
+
   try {
     // Kiểm tra xem đã kết nối ví TON chưa
     if (!tonConnectUI.connected) {
