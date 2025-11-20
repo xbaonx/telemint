@@ -367,3 +367,5 @@ router.post('/debug/message-hash', (req, res) => {
   }
 });
 
+module.exports = router;
+
