@@ -4,14 +4,14 @@
   "description": "TON NFT Collection & Item smart contracts in Tact",
   "type": "module",
   "scripts": {
-    "build": "tsx scripts/build.ts",
+    "build": "tact --config ./tact.config.json",
     "deploy": "tsx scripts/deploy-collection.ts",
     "set-fee": "tsx scripts/set-fee.ts",
     "withdraw": "tsx scripts/withdraw.ts"
   },
   "dependencies": {
     "@orbs-network/ton-access": "^2.3.3",
-    "@tact-lang/compiler": "^1.4.0",
+    "@tact-lang/compiler": "^1.5.0",
     "@ton/core": "^0.62.0",
     "@ton/crypto": "^3.3.0",
     "@ton/ton": "^16.0.0",

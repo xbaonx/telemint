@@ -16,5 +16,6 @@
         "debug": false
       }
     }
-  ]
+  ],
+  "include": ["./node_modules/@tact-lang/compiler/node_modules/@tact-lang/stdlib", "./node_modules/@tact-lang/stdlib"] 
 }

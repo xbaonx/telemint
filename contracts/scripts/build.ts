@@ -41,15 +41,16 @@ async function main() {
         process.exit(1);
       }
 
-      // Build contract using Tact compiler (expects { config: Project })
-      await build({
-        config: {
-          ...project,
-          // Ensure absolute paths
-          path: contractPath,
-          output: buildDir,
-        } as any,
+      // Build contract using Tact compiler
+      const result = await build({
+        ...tactConfig,
+        projects: [project],
       });
+
+      if (!result) {
+        console.error(chalk.red(`❌ Build failed for ${contractName}, stopping.`));
+        process.exit(1);
+      }
 
       console.log(chalk.green(`✅ ${contractName} built successfully!`));
 
