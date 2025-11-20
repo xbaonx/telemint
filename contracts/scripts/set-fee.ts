@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 
 import { Address, toNano, beginCell } from '@ton/core';
+import { WalletContractV4, internal } from '@ton/ton';
 import { program } from 'commander';
 import chalk from 'chalk';
 import * as dotenv from 'dotenv';
@@ -28,7 +29,7 @@ async function setFee(collectionAddr: string, newFee: string, testnet: boolean) 
 
     // Get wallet
     const { contract: wallet, address: walletAddress, keyPair } = await getWallet(mnemonic, testnet);
-    const client = getTonClient(testnet);
+    const client = await getTonClient(testnet);
 
     await displayWalletInfo({ address: walletAddress }, client);
 
@@ -40,39 +41,26 @@ async function setFee(collectionAddr: string, newFee: string, testnet: boolean) 
     console.log(chalk.cyan('💵 New Mint Fee:'), formatTon(feeAmount), 'TON');
 
     // Verify collection exists
-    const state = await client.getContractState(collectionAddress);
-    if (state.state !== 'active') {
-        throw new Error('Collection contract not found or not active');
-    }
-
-    // Get current fee
-    const currentFeeResult = await client.runMethod(collectionAddress, 'get_mint_fee');
-    const currentFee = currentFeeResult.stack.readBigNumber();
-    console.log(chalk.gray('📊 Current Fee:'), formatTon(currentFee), 'TON');
+    const walletContract = client.open(wallet as WalletContractV4);
+    const seqno = await walletContract.getSeqno();
 
     // Build SetFee message
-    // Message format: op:0x... + newFee:coins
     const messageBody = beginCell()
-        .storeUint(0, 32) // Simple text message - contract will parse via receive(msg: SetFee)
-        .storeUint(BigInt(feeAmount), 64) // Store as coins
+        .storeUint(0, 32) // op for SetFee, assuming 0 for this example
+        .storeCoins(feeAmount)
         .endCell();
-
-    // Alternative: Use Tact-generated message builders
-    // Load the build artifact and use SetFee message builder
 
     console.log(chalk.cyan('\n📤 Sending set_fee transaction...'));
 
-    const seqno = await wallet.getSeqno();
-
-    await wallet.sendTransfer({
+    await walletContract.sendTransfer({
         seqno,
         secretKey: keyPair.secretKey,
         messages: [
-            {
+            internal({
                 to: collectionAddress,
                 value: toNano('0.05'), // Gas for processing
                 body: messageBody,
-            },
+            }),
         ],
     });
 

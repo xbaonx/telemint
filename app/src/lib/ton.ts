@@ -46,9 +46,13 @@ export function buildMintPayload(toAddress: string, metadataUri: string): string
  * Get the full price for minting from the smart contract.
  */
 export async function getFullPriceOnChain(collection: string): Promise<bigint> {
+  const toncenterUrl = NETWORK === 'testnet' 
+    ? 'https://testnet.toncenter.com/api/v3'
+    : 'https://toncenter.com/api/v3';
+
   // Use Toncenter to run the get method
   try {
-    const url = `https://toncenter.com/api/v3/runGetMethod?address=${collection}&method=get_full_price`;
+    const url = `${toncenterUrl}/runGetMethod?address=${collection}&method=get_full_price`;
     const res = await fetch(url);
     if (res.ok) {
       const json = await res.json();
