@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { Address, toNano, beginCell } from '@ton/core';
+import { Address, toNano, beginCell, internal } from '@ton/core';
 import { program } from 'commander';
 import chalk from 'chalk';
 import * as dotenv from 'dotenv';
@@ -33,7 +33,7 @@ async function withdraw(
 
     // Get wallet
     const { contract: wallet, address: walletAddress, keyPair } = await getWallet(mnemonic, testnet);
-    const client = getTonClient(testnet);
+    const client = await getTonClient(testnet);
 
     await displayWalletInfo({ address: walletAddress }, client);
 
@@ -62,8 +62,9 @@ async function withdraw(
 
     // Build Withdraw message
     // Message format: op + to:Address + amount:coins
+    // Opcode found in build artifacts: withdraw#27e60a88
     const messageBody = beginCell()
-        .storeUint(0, 32) // Will be parsed by receive(msg: Withdraw)
+        .storeUint(0x27e60a88, 32) // Opcode Withdraw
         .storeAddress(toAddress)
         .storeCoins(BigInt(withdrawAmount))
         .endCell();
@@ -76,11 +77,11 @@ async function withdraw(
         seqno,
         secretKey: keyPair.secretKey,
         messages: [
-            {
+            internal({
                 to: collectionAddress,
                 value: toNano('0.05'), // Gas for processing
                 body: messageBody,
-            },
+            }),
         ],
     });
 
