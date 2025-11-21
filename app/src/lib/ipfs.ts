@@ -194,12 +194,11 @@ export async function uploadToIPFS(
     console.log('✅ Image uploaded:', imageUri);
 
     // 2. Create metadata
-    // Use HTTPS Gateway for image to ensure better compatibility and speed on marketplaces like Getgems
+    // Use Cloudflare IPFS Gateway for image to ensure best compatibility and speed
+    // https://cloudflare-ipfs.com/ipfs/
     let imageUrlForMetadata = imageUri;
-    if (IPFS_PROVIDER === 'pinata') {
-      imageUrlForMetadata = `https://gateway.pinata.cloud/ipfs/${imageCid}`;
-    } else if (IPFS_PROVIDER === 'web3') {
-      imageUrlForMetadata = `https://${imageCid}.ipfs.w3s.link/${file.name}`;
+    if (IPFS_PROVIDER === 'pinata' || IPFS_PROVIDER === 'web3') {
+      imageUrlForMetadata = `https://cloudflare-ipfs.com/ipfs/${imageCid}`;
     } else if (IPFS_PROVIDER === 'nft') {
       imageUrlForMetadata = `https://${imageCid}.ipfs.nftstorage.link/`;
     }
