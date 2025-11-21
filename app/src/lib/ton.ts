@@ -53,7 +53,12 @@ export async function getFullPriceOnChain(collection: string): Promise<bigint> {
   // Use Toncenter to run the get method
   try {
     const url = `${toncenterUrl}/runGetMethod?address=${collection}&method=get_full_price`;
-    const res = await fetch(url);
+    const apiKey = import.meta.env.VITE_TONCENTER_API_KEY;
+    const headers: HeadersInit = {};
+    if (apiKey) {
+      headers['X-API-Key'] = apiKey;
+    }
+    const res = await fetch(url, { headers });
     if (res.ok) {
       const json = await res.json();
       const stack = json?.result?.stack || [];
@@ -69,7 +74,8 @@ export async function getFullPriceOnChain(collection: string): Promise<bigint> {
   }
 
   // Fallback to a reasonable default if on-chain call fails
-  const fallbackPrice = toNano('0.5');
+  // Contract mint fee is 1 TON + gas
+  const fallbackPrice = toNano('1.1');
   console.log('🔎 Using fallback full price:', fallbackPrice.toString());
   return fallbackPrice;
 }

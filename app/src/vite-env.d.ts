@@ -10,6 +10,7 @@ interface ImportMetaEnv {
   readonly VITE_NFT_STORAGE_TOKEN?: string;
   readonly VITE_PINATA_JWT?: string;
   readonly VITE_NETWORK: 'testnet' | 'mainnet';
+  readonly VITE_TONCENTER_API_KEY: string;
   readonly VITE_API_WALLET_ADDRESS?: string;
   readonly VITE_API_ENDPOINT?: string;
 }
