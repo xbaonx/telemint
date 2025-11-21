@@ -25,9 +25,11 @@ export function buildMintPayload(toAddress: string, metadataUri: string): string
       .endCell();
 
     // Build main message body according to NftCollection.tact: op, query_id, to, content
+    // Opcode found in build artifacts: mint#decd809e
+    // TL-B: mint#decd809e to:address content:^cell = Mint
+    // NO query_id in the definition!
     const messageBody = beginCell()
-      .storeUint(1, 32) // op: mint
-      .storeUint(0, 64) // query_id
+      .storeUint(0xdecd809e, 32) // op: mint (calculated from CRC32 of "Mint")
       .storeAddress(to)
       .storeRef(contentCell)
       .endCell();
