@@ -194,10 +194,20 @@ export async function uploadToIPFS(
     console.log('✅ Image uploaded:', imageUri);
 
     // 2. Create metadata
+    // Use HTTPS Gateway for image to ensure better compatibility and speed on marketplaces like Getgems
+    let imageUrlForMetadata = imageUri;
+    if (IPFS_PROVIDER === 'pinata') {
+      imageUrlForMetadata = `https://gateway.pinata.cloud/ipfs/${imageCid}`;
+    } else if (IPFS_PROVIDER === 'web3') {
+      imageUrlForMetadata = `https://${imageCid}.ipfs.w3s.link/${file.name}`;
+    } else if (IPFS_PROVIDER === 'nft') {
+      imageUrlForMetadata = `https://${imageCid}.ipfs.nftstorage.link/`;
+    }
+
     const metadata: NFTMetadata = {
       name,
       description: description || '',
-      image: imageUri,
+      image: imageUrlForMetadata,
     };
 
     // 3. Upload metadata
