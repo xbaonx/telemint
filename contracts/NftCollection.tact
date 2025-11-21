@@ -57,12 +57,12 @@ contract NftCollection with Deployable, Ownable {
             bounce: false,
             code: itemInit.code,
             data: itemInit.data,
-            body: beginCell()
-                .storeAddress(myAddress())
-                .storeUint(self.nextIndex, 64)
-                .storeAddress(msg.to)
-                .storeRef(msg.content)
-                .endCell()
+            body: InitFromCollection{
+                collection: myAddress(),
+                index: self.nextIndex,
+                to: msg.to,
+                content: msg.content
+            }.toCell()
         });
 
         // Increment index for next NFT
