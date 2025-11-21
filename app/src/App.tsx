@@ -230,9 +230,12 @@ function App() {
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-gray-800">
-              Mint Box
-            </h1>
+            <div className="flex items-center gap-3">
+              <img src="/logo.png" alt="Mint Box Logo" className="w-10 h-10 object-contain rounded-lg" />
+              <h1 className="text-3xl font-bold text-gray-800">
+                Mint Box
+              </h1>
+            </div>
             <TonConnectButton />
           </div>
 
