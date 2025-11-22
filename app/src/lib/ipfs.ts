@@ -194,11 +194,13 @@ export async function uploadToIPFS(
     console.log('✅ Image uploaded:', imageUri);
 
     // 2. Create metadata
-    // Use Cloudflare IPFS Gateway for image to ensure best compatibility and speed
-    // https://cloudflare-ipfs.com/ipfs/
+    // Use Pinata Gateway for image to ensure best compatibility with Pinata uploads
+    // https://gateway.pinata.cloud/ipfs/
     let imageUrlForMetadata = imageUri;
-    if (IPFS_PROVIDER === 'pinata' || IPFS_PROVIDER === 'web3') {
-      imageUrlForMetadata = `https://cloudflare-ipfs.com/ipfs/${imageCid}`;
+    if (IPFS_PROVIDER === 'pinata') {
+      imageUrlForMetadata = `https://gateway.pinata.cloud/ipfs/${imageCid}`;
+    } else if (IPFS_PROVIDER === 'web3') {
+      imageUrlForMetadata = `https://${imageCid}.ipfs.w3s.link/${file.name}`;
     } else if (IPFS_PROVIDER === 'nft') {
       imageUrlForMetadata = `https://${imageCid}.ipfs.nftstorage.link/`;
     }

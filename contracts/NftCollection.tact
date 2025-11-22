@@ -41,6 +41,20 @@ contract NftCollection with Deployable, Ownable {
         return self.royalty_params;
     }
 
+    receive(msg: GetRoyaltyParams) {
+        send(SendParameters{
+            to: sender(),
+            value: 0,
+            mode: SendRemainingValue,
+            body: ReportRoyaltyParams{
+                queryId: msg.queryId,
+                numerator: self.royalty_params.numerator,
+                denominator: self.royalty_params.denominator,
+                destination: self.royalty_params.destination
+            }.toCell()
+        });
+    }
+
     // ============== MINT FUNCTION ==============
     // Receives mint request with payment
     receive(msg: Mint) {
@@ -189,6 +203,17 @@ struct CollectionData {
 }
 
 struct RoyaltyParams {
+    numerator: Int as uint16;
+    denominator: Int as uint16;
+    destination: Address;
+}
+
+message GetRoyaltyParams {
+    queryId: Int as uint64;
+}
+
+message ReportRoyaltyParams {
+    queryId: Int as uint64;
     numerator: Int as uint16;
     denominator: Int as uint16;
     destination: Address;
