@@ -208,11 +208,11 @@ struct RoyaltyParams {
     destination: Address;
 }
 
-message GetRoyaltyParams {
+message(0x693d3950) GetRoyaltyParams {
     queryId: Int as uint64;
 }
 
-message ReportRoyaltyParams {
+message(0xa8cb00ad) ReportRoyaltyParams {
     queryId: Int as uint64;
     numerator: Int as uint16;
     denominator: Int as uint16;

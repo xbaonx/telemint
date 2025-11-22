@@ -3,7 +3,7 @@ import "@stdlib/ownable";
 
 // NFT Item Contract - Standard TON NFT
 // Implements get_nft_data() for compatibility with wallets and explorers
-message Transfer {
+message(0x5fcc3d14) Transfer {
     queryId: Int as uint64;
     newOwner: Address;
     responseDestination: Address?;
