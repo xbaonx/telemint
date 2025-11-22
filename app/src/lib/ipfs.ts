@@ -54,7 +54,7 @@ export async function uploadToIPFS(
     const metadata: NFTMetadata = {
       name,
       description: description || '',
-      image: imageUri, 
+      image: `https://gateway.pinata.cloud/ipfs/${imageCid}`, // Use HTTP URL for better compatibility
     };
 
     console.log('📤 Uploading metadata to Pinata...');

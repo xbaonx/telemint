@@ -19,13 +19,21 @@ export async function getTonClient(testnet: boolean = true): Promise<TonClient> 
     const network = testnet ? 'testnet' : 'mainnet';
     let discovered = '';
     
-    try {
-        discovered = await getHttpEndpoint({ network });
-    } catch (e) {
-        console.warn('⚠️ Failed to get endpoint from ton-access, using fallback.');
+    // FORCE FALLBACK for stability
+    if (true) { 
+        console.log('⚠️ Skipping ton-access, using direct Toncenter endpoint.');
         discovered = testnet 
             ? 'https://testnet.toncenter.com/api/v2/jsonRPC'
             : 'https://toncenter.com/api/v2/jsonRPC';
+    } else {
+        try {
+            discovered = await getHttpEndpoint({ network });
+        } catch (e) {
+            console.warn('⚠️ Failed to get endpoint from ton-access, using fallback.');
+            discovered = testnet 
+                ? 'https://testnet.toncenter.com/api/v2/jsonRPC'
+                : 'https://toncenter.com/api/v2/jsonRPC';
+        }
     }
 
     const apiKey = process.env.TONCENTER_API_KEY;
