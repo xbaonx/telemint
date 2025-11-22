@@ -77,9 +77,9 @@ export async function getFullPriceOnChain(collection: string): Promise<bigint> {
 
   // Fallback to a reasonable default if on-chain call fails
   // Contract require: mintFee (1.0) + deployItem (0.3) + gasBuffer (0.05) = 1.35 TON
-  // Set fallback to 1.5 TON to be safe
-  const fallbackPrice = toNano('1.5');
-  console.log('🔎 Using fallback full price (v1.5):', fallbackPrice.toString());
+  // Set fallback to 1.1 TON to be safe
+  const fallbackPrice = toNano('1.1');
+  console.log('🔎 Using fallback full price (v1.1):', fallbackPrice.toString());
   return fallbackPrice;
 }
 
