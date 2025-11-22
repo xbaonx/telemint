@@ -59,19 +59,33 @@ contract NftItem with Deployable {
             "Unauthorized: Only owner or collection can transfer"
         );
 
+        let prevOwner: Address = self.owner;
         self.owner = msg.newOwner;
 
-        // If there's a response destination, send notification
+        // 1. Send ownership_assigned to newOwner if forwardAmount > 0
+        if (msg.forwardAmount > 0) {
+            send(SendParameters{
+                to: msg.newOwner,
+                value: msg.forwardAmount,
+                mode: SendPayGasSeparately, 
+                body: beginCell()
+                    .storeUint(0x05138d91, 32) // ownership_assigned
+                    .storeUint(msg.queryId, 64)
+                    .storeAddress(prevOwner)
+                    .storeSlice(msg.forwardPayload) // forwardPayload is Slice
+                    .endCell()
+            });
+        }
+
+        // 2. Send excess gas back to responseDestination
         if (msg.responseDestination != null) {
             send(SendParameters{
                 to: msg.responseDestination!!,
                 value: 0,
-                mode: SendRemainingValue,
+                mode: SendRemainingValue | SendIgnoreErrors, // Return remaining value, ignore errors
                 body: beginCell()
-                    .storeUint(0x05138d91, 32) // ownership_assigned
+                    .storeUint(0xd53276db, 32) // excesses
                     .storeUint(msg.queryId, 64)
-                    .storeAddress(self.owner)
-                    .storeRef(msg.forwardPayload.asCell())
                     .endCell()
             });
         }
