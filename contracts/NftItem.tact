@@ -13,7 +13,7 @@ message(0x5fcc3d14) Transfer {
 }
 
 // Message sent by NftCollection at deployment to finalize owner and content
-message InitFromCollection {
+message(0x54c01d64) InitFromCollection {
     collection: Address;
     index: Int as uint64;
     to: Address;

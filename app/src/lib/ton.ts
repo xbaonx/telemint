@@ -25,11 +25,11 @@ export function buildMintPayload(toAddress: string, metadataUri: string): string
       .endCell();
 
     // Build main message body according to NftCollection.tact: op, query_id, to, content
-    // Opcode found in build artifacts: mint#decd809e
-    // TL-B: mint#decd809e to:address content:^cell = Mint
+    // Opcode updated to explicit 0x1 in contract
+    // TL-B: mint#00000001 to:address content:^cell = Mint
     // NO query_id in the definition!
     const messageBody = beginCell()
-      .storeUint(0xdecd809e, 32) // op: mint (calculated from CRC32 of "Mint")
+      .storeUint(0x1, 32) // op: mint (explicit 0x1)
       .storeAddress(to)
       .storeRef(contentCell)
       .endCell();
@@ -77,9 +77,9 @@ export async function getFullPriceOnChain(collection: string): Promise<bigint> {
 
   // Fallback to a reasonable default if on-chain call fails
   // Contract require: mintFee (1.0) + deployItem (0.3) + gasBuffer (0.05) = 1.35 TON
-  // Set fallback to 1.1 TON to be safe
-  const fallbackPrice = toNano('1.1');
-  console.log('🔎 Using fallback full price (v1.1):', fallbackPrice.toString());
+  // Set fallback to 1.5 TON to be safe
+  const fallbackPrice = toNano('1.5');
+  console.log('🔎 Using fallback full price (v1.5):', fallbackPrice.toString());
   return fallbackPrice;
 }
 

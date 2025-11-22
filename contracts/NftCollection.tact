@@ -7,11 +7,8 @@ const GAS_BUFFER: Int = 50000000;        // 0.05 TON - Buffer for computation
 const DEPLOY_ITEM_VALUE: Int = 300000000; // 0.3 TON - Gas for NFT Item deployment
 const MIN_TON_RESERVE: Int = 10000000;   // 0.01 TON - Min balance to keep in collection
 
-// ============== OPCODES ==============
-const OP_MINT: Int = 0x01;               // Custom op for minting
-
 // Mint message structure
-message Mint {
+message(0x1) Mint {
     to: Address;          // Who receives the NFT
     content: Cell;        // Metadata content (IPFS URI)
 }

@@ -5,7 +5,7 @@ async function main() {
     const client = await getTonClient(false); // Mainnet
     
     // Collection Address (Mới nhất)
-    const collectionAddr = Address.parse('EQB5oZjoOwSKDQf7xjC7BY9lz3wv0voBRxAYvLXx7cGJU4Jo');
+    const collectionAddr = Address.parse('EQByNCFUBlJOziQZBI4OB61mIXiDnI10bDB71A1FD3zFMaX_');
     console.log('🔍 Checking Collection:', collectionAddr.toString());
 
     // 1. Get Collection Data to find nextItemIndex
@@ -19,7 +19,7 @@ async function main() {
     }
 
     // 2. Get Address of NFT Index 2
-    const targetIndex = 2n;
+    const targetIndex = 0n;
     const { stack: nftStack } = await client.runMethod(collectionAddr, 'get_nft_address_by_index', [
         { type: 'int', value: targetIndex }
     ]);
