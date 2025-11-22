@@ -18,8 +18,8 @@ async function main() {
         return;
     }
 
-    // 2. Get Address of NFT Index 0
-    const targetIndex = 0n;
+    // 2. Get Address of NFT Index 2
+    const targetIndex = 2n;
     const { stack: nftStack } = await client.runMethod(collectionAddr, 'get_nft_address_by_index', [
         { type: 'int', value: targetIndex }
     ]);

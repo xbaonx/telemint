@@ -21,12 +21,24 @@ contract NftCollection with Deployable, Ownable {
     nextIndex: Int as uint64 = 0;
     mintFee: Int as coins;
     itemCode: Cell;
+    royalty_params: RoyaltyParams;
 
     init(owner: Address, itemCode: Cell, initialFee: Int) {
         self.owner = owner;
         self.itemCode = itemCode;
         self.mintFee = initialFee;
         self.nextIndex = 0;
+        // Default Royalty: 5% (5/100) to owner
+        self.royalty_params = RoyaltyParams{
+            numerator: 5,
+            denominator: 100,
+            destination: owner
+        };
+    }
+
+    // ============== ROYALTY (TEP-66) ==============
+    get fun get_royalty_params(): RoyaltyParams {
+        return self.royalty_params;
     }
 
     // ============== MINT FUNCTION ==============
@@ -174,4 +186,10 @@ struct CollectionData {
     nextItemIndex: Int;
     collectionContent: Cell;
     ownerAddress: Address;
+}
+
+struct RoyaltyParams {
+    numerator: Int as uint16;
+    denominator: Int as uint16;
+    destination: Address;
 }
