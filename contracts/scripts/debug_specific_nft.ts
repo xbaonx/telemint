@@ -4,15 +4,14 @@ import { Address } from '@ton/core';
 async function main() {
     const client = await getTonClient(false); // Mainnet
     
-    // Other NFT (EQAgrbLU...)
-    const nftAddrStr = 'EQAgrbLUvX43kNq7mG6dm2ZzU858kVHs4eu66POt28aNA79o';
+    // YOUR NEW NFT (Firebase)
+    const nftAddrStr = 'EQDV88bIcD76tITL29ab-bkNwkkgw0IHs-DHKbyIq2rheSPI';
     const nftAddr = Address.parse(nftAddrStr);
-    console.log('🔍 Checking Competitor NFT 2:', nftAddrStr);
+    console.log('🔍 Checking YOUR NEW NFT:', nftAddrStr);
 
     // 1. Get NFT Data
     try {
         const { stack: dataStack } = await client.runMethod(nftAddr, 'get_nft_data');
-        // ... (rest of logic same)
         const isInitialized = dataStack.readBoolean();
         const index = dataStack.readBigNumber();
         const collectionAddr = dataStack.readAddress();
@@ -20,7 +19,10 @@ async function main() {
         const contentCell = dataStack.readCell();
 
         console.log('📊 NFT Data On-Chain:');
+        console.log('   - Initialized:', isInitialized);
+        console.log('   - Index:', index.toString());
         console.log('   - Collection:', collectionAddr.toString());
+        console.log('   - Owner:', ownerAddr.toString());
 
         // 2. Decode Content
         const slice = contentCell.beginParse();
@@ -31,7 +33,6 @@ async function main() {
         if (prefix === 1) {
             metadataUri = slice.loadStringTail();
         } else {
-            // Try to read remaining string if snake format isn't standard
              metadataUri = slice.loadStringTail();
         }
         console.log('🔗 Metadata URI:', metadataUri);
@@ -39,15 +40,17 @@ async function main() {
         // 3. Fetch Metadata
         console.log('📥 Fetching metadata...');
         let fetchUrl = metadataUri;
-        if (metadataUri.startsWith('ipfs://')) {
-            fetchUrl = metadataUri.replace('ipfs://', 'https://ipfs.io/ipfs/');
-        }
+        // No IPFS replacement needed for Firebase
         
         console.log(`   Fetching from: ${fetchUrl}`);
         const res = await fetch(fetchUrl);
         if (!res.ok) throw new Error(`Status ${res.status}`);
         const json = await res.json();
         console.log('📄 Metadata JSON Content:', JSON.stringify(json, null, 2));
+        
+        if (json.image) {
+             console.log('🖼 Image URL:', json.image);
+        }
 
     } catch (e) {
         console.error('❌ Error checking NFT:', e);

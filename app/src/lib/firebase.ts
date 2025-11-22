@@ -25,8 +25,12 @@ export async function uploadFileToFirebase(file: File): Promise<string> {
     const storageRef = ref(storage, `images/${filename}`);
     
     const snapshot = await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
+    
+    // Construct "clean" public URL (no token)
+    // Format: https://firebasestorage.googleapis.com/v0/b/[BUCKET]/o/[PATH]?alt=media
+    const bucket = snapshot.metadata.bucket;
+    const path = encodeURIComponent(snapshot.metadata.fullPath);
+    return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${path}?alt=media`;
 }
 
 /**
@@ -40,6 +44,9 @@ export async function uploadMetadataToFirebase(metadata: any): Promise<string> {
     const blob = new Blob([jsonString], { type: "application/json" });
     
     const snapshot = await uploadBytes(storageRef, blob);
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
+    
+    // Construct "clean" public URL (no token)
+    const bucket = snapshot.metadata.bucket;
+    const path = encodeURIComponent(snapshot.metadata.fullPath);
+    return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${path}?alt=media`;
 }
