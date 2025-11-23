@@ -6,10 +6,18 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const mintRoutes = require('./mint');
+const { launchBot } = require('./bot'); // Import bot
 
 // Khởi tạo Express app
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Start Bot nếu có token
+if (process.env.TELEGRAM_BOT_TOKEN) {
+    launchBot();
+} else {
+    console.warn('⚠️ TELEGRAM_BOT_TOKEN not found. Bot will not start.');
+}
 
 // Middleware
 app.use(cors());
