@@ -45,14 +45,14 @@ export function MintButton({
         metadataUri,
       });
 
-      // Thông báo cho người dùng cần mở ví TON để phê duyệt
+      // Inform the user to open their TON wallet for approval
       alert(
         'To mint an NFT, please approve the transaction in your TON wallet.\n\n' +
         'If you don\'t see the wallet open, check your browser settings ' +
         'and allow popups or external windows.'
       );
 
-      // Gửi giao dịch mint trực tiếp on-chain tới Collection (payload chuẩn)
+      // Send mint transaction directly on-chain to Collection (standard payload)
       const result = await sendMintTransaction(
         tonConnectUI,
         userAddress,
@@ -61,34 +61,34 @@ export function MintButton({
 
       telegram.haptic('success');
       
-      // Lấy BOC/tx id trả về từ wallet (một số ví trả về `boc`)
+      // Get BOC/tx id returned from wallet (some wallets return `boc`)
       const txHash = (result as any)?.boc || 'submitted';
       
       console.log('🖊️ Mint transaction sent with result:', {
         txHash
       });
       
-      // Gọi hàm onSuccess với txHash (không dùng backend requestId nữa)
+      // Call onSuccess with txHash (backend requestId is no longer used)
       onSuccess(txHash, undefined);
       
-      // Thông báo thành công
-      alert('Giao dịch thành công! NFT sẽ được mint và gửi đến ví của bạn trong ít phút.');
+      // Notify success
+      alert('Transaction successful! NFT will be minted and sent to your wallet in a few minutes.');
     } catch (error: any) {
       console.error('❌ Mint failed:', error);
       telegram.haptic('error');
       
       // Chi tiết hóa lỗi
-      let errorMessage = error.message || 'Không thể gửi yêu cầu mint NFT. Vui lòng thử lại.';
+      let errorMessage = error.message || 'Failed to send NFT mint request. Please try again.';
       
-      // Kiểm tra chi tiết hơn dựa theo lỗi TON Connect
+      // Check details based on TON Connect error
       if (error.message?.includes('timeout')) {
-        errorMessage = 'Kết nối ví hết thời gian. Vui lòng thử lại.';
-      } else if (error.message?.includes('user reject') || error.message?.includes('từ chối')) {
-        errorMessage = 'Giao dịch đã bị từ chối trong ví.';
-      } else if (error.message?.includes('insufficient') || error.message?.includes('không đủ')) {
-        errorMessage = 'Số dư không đủ để mint NFT.';
+        errorMessage = 'Wallet connection timed out. Please try again.';
+      } else if (error.message?.includes('user reject') || error.message?.includes('declined')) {
+        errorMessage = 'Transaction was rejected in the wallet.';
+      } else if (error.message?.includes('insufficient') || error.message?.includes('balance')) {
+        errorMessage = 'Insufficient balance to mint NFT.';
       } else if (error.message?.includes('backend') || error.message?.includes('notify')) {
-        errorMessage = 'Giao dịch được gửi nhưng không thể thông báo cho hệ thống. NFT có thể vẫn sẽ được mint, vui lòng kiểm tra sau.';
+        errorMessage = 'Transaction sent but failed to notify system. NFT might still be minted, please check later.';
       }
       
       console.log('🛑 Error details:', { message: errorMessage, originalError: error });

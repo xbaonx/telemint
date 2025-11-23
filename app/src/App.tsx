@@ -40,16 +40,16 @@ function App() {
   const handleDebugTransferClick = async () => {
     try {
       if (!userAddress) {
-        alert('Hãy kết nối ví trước khi chạy debug transfer');
+        alert('Please connect your wallet before running debug transfer.');
         return;
       }
       const fn = (window as any).debugTonTransfer;
       if (typeof fn !== 'function') {
-        alert('debugTonTransfer chưa sẵn sàng');
+        alert('debugTonTransfer is not ready');
         return;
       }
       await fn(userAddress, '0.01');
-      alert('Đã gửi yêu cầu chuyển 0.01 TON, hãy xác nhận trong ví.');
+      alert('Sent request to transfer 0.01 TON, please confirm in your wallet.');
     } catch (e: any) {
       console.error('Debug transfer error:', e);
       alert(e?.message || 'Debug transfer failed');
@@ -77,7 +77,7 @@ function App() {
       if (typeof send === 'function') {
         await send(userAddress, amountSelf, payload);
       } else {
-        console.log('⚙️ debugSend không sẵn sàng, dùng fallback trực tiếp (payload → self)');
+        console.log('⚙️ debugSend not ready, using direct fallback (payload → self)');
         const tx = {
           validUntil: Math.floor(Date.now() / 1000) + 180,
           messages: [
@@ -91,7 +91,7 @@ function App() {
         console.log('🧪 Fallback tx (payload → self):', tx);
         await tonConnectUI.sendTransaction(tx as any);
       }
-      alert('Đã gửi yêu cầu 0.05 TON + payload tới chính ví của bạn, hãy xác nhận trong ví.');
+      alert('Sent request for 0.05 TON + payload to your own wallet, please confirm.');
     } catch (e: any) {
       console.error('Debug payload-to-self error:', e);
       alert(e?.message || 'Debug payload-to-self failed');
@@ -104,7 +104,7 @@ function App() {
       if (typeof fn === 'function') {
         await fn(collectionAddress, '0.01');
       } else {
-        console.log('⚙️ debugSend không sẵn sàng, dùng fallback trực tiếp');
+        console.log('⚙️ debugSend not ready, using direct fallback');
         const tx = {
           validUntil: Math.floor(Date.now() / 1000) + 180,
           messages: [
@@ -117,7 +117,7 @@ function App() {
         console.log('🧪 Fallback tx (no payload):', tx);
         await tonConnectUI.sendTransaction(tx as any);
       }
-      alert('Đã gửi yêu cầu 0.01 TON tới collection, hãy xác nhận trong ví.');
+      alert('Sent request for 0.01 TON to collection, please confirm.');
     } catch (e: any) {
       console.error('Debug collection no-payload error:', e);
       alert(e?.message || 'Debug collection failed');
@@ -140,7 +140,7 @@ function App() {
       if (typeof send === 'function') {
         await send(collectionAddress, amountTon, payload);
       } else {
-        console.log('⚙️ debugSend không sẵn sàng, dùng fallback trực tiếp (with payload)');
+        console.log('⚙️ debugSend not ready, using direct fallback (with payload)');
         const tx = {
           validUntil: Math.floor(Date.now() / 1000) + 180,
           messages: [
@@ -154,7 +154,7 @@ function App() {
         console.log('🧪 Fallback tx (with payload):', tx);
         await tonConnectUI.sendTransaction(tx as any);
       }
-      alert('Đã gửi yêu cầu 0.01 TON + payload tới collection, hãy xác nhận trong ví.');
+      alert('Sent request for 0.01 TON + payload to collection, please confirm.');
     } catch (e: any) {
       console.error('Debug collection payload error:', e);
       alert(e?.message || 'Debug collection with payload failed');
@@ -257,7 +257,7 @@ function App() {
               <div className="card border-dashed space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm text-gray-700">
-                    Debug: Gửi giao dịch thử 0.01 TON tới địa chỉ ví đang kết nối để kiểm tra xác minh ví.
+                    Debug: Send a test transaction of 0.01 TON to the connected wallet to verify wallet connection.
                   </p>
                   <button onClick={handleDebugTransferClick} className="btn-secondary whitespace-nowrap">
                     Run Debug Transfer
@@ -369,10 +369,10 @@ function App() {
               <div className="card">
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 mb-2">
-                    Sẵn sàng mint NFT của bạn!
+                    Ready to mint your NFT!
                   </p>
                   <p className="text-xs text-gray-500">
-                    Đảm bảo bạn có đủ TON trong ví để chi trả phí mint và gas.
+                    Ensure you have enough TON in your wallet to cover minting fees and gas.
                   </p>
                 </div>
 
@@ -385,7 +385,7 @@ function App() {
 
                 {!userAddress && (
                   <p className="text-center text-sm text-red-500 mt-3">
-                    Vui lòng kết nối ví để mint NFT
+                    Please connect your wallet to mint NFT
                   </p>
                 )}
                 

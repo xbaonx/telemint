@@ -1,4 +1,4 @@
-// Loại bỏ import không sử dụng
+// Remove unused import
 import { CheckCircle2, ExternalLink, RotateCcw } from 'lucide-react';
 import { telegram } from '../lib/telegram';
 import { useTonAddress } from '@tonconnect/ui-react';
@@ -12,7 +12,7 @@ export function SuccessSheet({ txHash, onReset }: SuccessSheetProps) {
   const isTestnet = import.meta.env.VITE_NETWORK === 'testnet';
   const userAddress = useTonAddress();
   
-  // URL cho NFT trong ví (hiển thị tất cả NFT của người dùng)
+  // URL for NFT in wallet (display all NFTs of the user)
   const nftExplorerUrl = userAddress ? 
     `${isTestnet ? 'https://testnet.tonviewer.com' : 'https://tonviewer.com'}/address/${userAddress}/nfts` : 
     `${isTestnet ? 'https://testnet.tonviewer.com' : 'https://tonviewer.com'}`;
@@ -35,11 +35,11 @@ export function SuccessSheet({ txHash, onReset }: SuccessSheetProps) {
         </div>
 
         <h2 className="text-2xl font-bold text-green-800 mb-2">
-          Giao dịch thành công! 🎉
+          Transaction Successful! 🎉
         </h2>
 
         <p className="text-gray-600 mb-6">
-          Giao dịch đã được xác nhận. NFT sẽ được mint và gửi đến ví của bạn trong vòng vài phút.
+          Transaction verified. NFT will be minted and sent to your wallet in a few minutes.
         </p>
 
         <div className="w-full bg-white rounded-lg p-4 mb-6">

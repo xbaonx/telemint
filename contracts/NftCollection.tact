@@ -19,11 +19,13 @@ contract NftCollection with Deployable, Ownable {
     mintFee: Int as coins;
     itemCode: Cell;
     royalty_params: RoyaltyParams;
+    collection_content: Cell;
 
-    init(owner: Address, itemCode: Cell, initialFee: Int) {
+    init(owner: Address, itemCode: Cell, initialFee: Int, content: Cell) {
         self.owner = owner;
         self.itemCode = itemCode;
         self.mintFee = initialFee;
+        self.collection_content = content;
         self.nextIndex = 0;
         // Default Royalty: 5% (5/100) to owner
         self.royalty_params = RoyaltyParams{
@@ -148,9 +150,13 @@ contract NftCollection with Deployable, Ownable {
     get fun get_collection_data(): CollectionData {
         return CollectionData{
             nextItemIndex: self.nextIndex,
-            collectionContent: beginCell().endCell(), // Can add collection metadata here
+            collectionContent: self.collection_content,
             ownerAddress: self.owner
         };
+    }
+
+    get fun get_nft_content(index: Int, individual_content: Cell): Cell {
+        return individual_content;
     }
 
     get fun get_nft_address_by_index(index: Int): Address {

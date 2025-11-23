@@ -72,11 +72,20 @@ async function deploy(fee: string, testnet: boolean, ownerOverride?: string) {
     // Determine owner address (override if provided)
     const ownerAddress = ownerOverride ? Address.parse(ownerOverride) : walletAddress;
 
+    // Create Collection Content (TEP-64)
+    // Prefix 0x01 + String (URI)
+    const collectionContentUri = "https://raw.githubusercontent.com/xbaonx/telemint/main/collection.json";
+    const collectionContent = beginCell()
+        .storeUint(0x01, 8)
+        .storeStringTail(collectionContentUri)
+        .endCell();
+
     // Create collection contract instance
     const collection = await NftCollectionModule.NftCollection.fromInit(
         ownerAddress,
         itemCode,
-        mintFee
+        mintFee,
+        collectionContent
     );
 
     const collectionAddress = collection.address;

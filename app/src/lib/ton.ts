@@ -123,35 +123,35 @@ export async function sendMintTransaction(
   console.log('🔴 DEBUG: Transaction object sent to wallet:', JSON.stringify(transaction, null, 2));
 
   try {
-    // Kiểm tra xem đã kết nối ví TON chưa
+    // Check if TON wallet is connected
     if (!tonConnectUI.connected) {
-      console.log('🔗 Không có kết nối ví, đang kết nối...');
-      // Thông báo cho người dùng
+      console.log('🔗 No wallet connection, connecting...');
+      // Notify user
       alert('Connecting to TON wallet...');
       
-      // Chờ để kết nối ví hoàn tất trước khi gửi giao dịch
+      // Wait for wallet connection before sending transaction
       try {
         await tonConnectUI.connectWallet();
-        console.log('✅ Đã kết nối ví TON thành công');
+        console.log('✅ TON wallet connected successfully');
       } catch (connError) {
-        console.error('❌ Lỗi kết nối ví:', connError);
+        console.error('❌ Wallet connection error:', connError);
         throw new Error('Could not connect to TON wallet. Please try again.');
       }
     }
     
-    // Kiểm tra lại kết nối
+    // Check connection again
     if (!tonConnectUI.connected) {
       throw new Error('Wallet connection required');
     }
     
     console.log('💰 Sending to wallet for approval...');
 
-    // Thêm promise timeout 60s (tăng lên so với 45s trước đó)
+    // Add promise timeout 60s (increased from 45s)
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Transaction approval timed out after 60s')), 60000);
     });
     
-    // Thử gọi transaction với cơ chế retry
+    // Try sending transaction with retry mechanism
     let attempts = 0;
     const maxAttempts = 2;
     
@@ -162,7 +162,7 @@ export async function sendMintTransaction(
           console.log(`🔄 Retry attempt ${attempts}/${maxAttempts}...`);
         }
 
-        // Race giữa gọi transaction và timeout
+        // Race between transaction call and timeout
         const result = await Promise.race([
           tonConnectUI.sendTransaction(transaction),
           timeoutPromise
@@ -171,25 +171,25 @@ export async function sendMintTransaction(
         console.log('✅ Transaction sent:', result);
         return result as SendTransactionResponse;
       } catch (err: any) {
-        // Nếu là lỗi verification hoặc BadRequestError, thử lại
+        // If verification error or BadRequestError, retry
         if ((err.message?.includes('verification') || err.message?.includes('BadRequestError')) 
             && attempts < maxAttempts) {
           console.log('♻️ Transaction verification failed, retrying...');
-          // Chờ ngắn trước khi thử lại
+          // Short wait before retry
           await new Promise(resolve => setTimeout(resolve, 1000));
           continue;
         }
-        // Nếu lỗi khác hoặc đã hết số lần retry, throw lỗi
+        // If other error or max retries reached, throw
         throw err;
       }
     }
     
-    // Fallback trong trường hợp vòng lặp kết thúc mà không có return/throw
+    // Fallback in case loop ends without return/throw
     throw new Error('Failed to send transaction after multiple attempts');
   } catch (error: any) {
     console.error('❌ Transaction failed:', error);
     
-    // Phân loại lỗi chi tiết hơn
+    // Classify errors more detailed
     if (error.message?.includes('user reject') || error.message?.includes('declined')) {
       throw new Error('Transaction rejected by user');
     } else if (error.message?.includes('timeout')) {
@@ -199,24 +199,24 @@ export async function sendMintTransaction(
     } else if (error.message?.includes('insufficient') || error.message?.includes('balance')) {
       throw new Error('Insufficient balance to complete transaction.');
     } else if (error.message?.includes('verification failed')) {
-      // Lỗi Transaction verification failed
+      // Transaction verification failed
       console.error('❌ Transaction verification failed:', error);
-      throw new Error('Giao dịch không được xác thực. Hãy kiểm tra ví của bạn và thử lại.');
+      throw new Error('Transaction not verified. Please check your wallet and try again.');
     } else if (error.message?.includes('contains errors') || error.message?.includes('BadRequestError')) {
-      // Xử lý riêng cho lỗi BadRequestError
+      // Handle BadRequestError specially
       console.error('❌ BadRequestError details:', error);
       
-      // Kiểm tra xem có phải là lỗi format payload
+      // Check if it's payload format error
       if (error.message?.includes('payload')) {
         throw new Error('Invalid transaction format. Please try again later.');
       } else if (error.message?.includes('wallet')) {
-        throw new Error('Lỗi kết nối với ví TON. Hãy kết nối lại ví.');
+        throw new Error('Connection error with TON wallet. Please reconnect.');
       } else {
-        throw new Error('Yêu cầu chứa lỗi. Vui lòng thử lại sau.');
+        throw new Error('Request contained errors. Please try again later.');
       }
     }
     
-    // Log chi tiết hơn
+    // Detailed log
     console.error('🛑 Detailed error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     throw new Error('Transaction failed. Please try again.');
   }
