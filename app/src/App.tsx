@@ -24,6 +24,7 @@ function App() {
   const [nftName, setNftName] = useState('My Telegram NFT');
   const [nftDescription, setNftDescription] = useState('');
   const [metadataUri, setMetadataUri] = useState<string | null>(null);
+  const [uploadedImageUri, setUploadedImageUri] = useState<string | null>(null);
 
   // Success state
   const [txHash, setTxHash] = useState<string>('');
@@ -194,6 +195,9 @@ function App() {
       const result = await uploadToIPFS(selectedFile, nftName, nftDescription);
       
       setMetadataUri(result.metadataUri);
+      // Use HTTP URL for Telegram Bot (Pinata Gateway)
+      setUploadedImageUri(`https://gateway.pinata.cloud/ipfs/${result.imageCid}`);
+      
       setState('ready');
       telegram.haptic('success');
 
@@ -207,10 +211,29 @@ function App() {
   };
 
   // Handle mint success
-  const handleMintSuccess = (hash: string) => {
+  const handleMintSuccess = async (hash: string) => {
     setTxHash(hash);
     setState('success');
     console.log('🖊️ Mint successful:', { hash });
+
+    // Notify Telegram Channel via API
+    try {
+      if (uploadedImageUri && userAddress) {
+        console.log('📢 Sending mint notification to bot...');
+        await fetch('/api/notify-mint', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nftName,
+            nftImage: uploadedImageUri,
+            minterAddress: userAddress,
+            collectionAddress
+          })
+        });
+      }
+    } catch (e) {
+      console.error('Failed to notify bot:', e);
+    }
   };
 
   // Handle reset
@@ -218,6 +241,7 @@ function App() {
     setSelectedFile(null);
     setPreviewUrl(null);
     setMetadataUri(null);
+    setUploadedImageUri(null);
     setNftName('My Telegram NFT');
     setNftDescription('');
     setTxHash('');

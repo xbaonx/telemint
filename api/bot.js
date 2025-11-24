@@ -79,4 +79,44 @@ const launchBot = async () => {
     }
 };
 
-module.exports = { bot, launchBot };
+// Hàm gửi thông báo Mint mới vào Channel
+const sendMintNotification = async (mintData) => {
+    const channelId = process.env.TELEGRAM_CHANNEL_ID;
+    if (!channelId) {
+        console.warn('⚠️ TELEGRAM_CHANNEL_ID not set. Skipping notification.');
+        return;
+    }
+
+    const { nftName, nftImage, minterAddress, explorerUrl } = mintData;
+    
+    // Rút gọn địa chỉ ví (VD: EQ...1234)
+    const shortAddress = minterAddress 
+        ? `${minterAddress.slice(0, 4)}...${minterAddress.slice(-4)}`
+        : 'Unknown';
+
+    const message = `
+🎉 *NEW NFT MINTED!*
+
+💎 *Name:* ${nftName}
+👤 *Minter:* \`${shortAddress}\`
+🚀 *Collection:* Mint Box
+
+👇 *View on Explorer:*
+[Tonviewer](${explorerUrl})
+    `;
+
+    try {
+        await bot.telegram.sendPhoto(channelId, nftImage, {
+            caption: message,
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard([
+                [Markup.button.webApp('🔨 Mint Your Own', WEBAPP_URL)]
+            ])
+        });
+        console.log(`✅ Notification sent to channel ${channelId}`);
+    } catch (error) {
+        console.error('❌ Failed to send channel notification:', error);
+    }
+};
+
+module.exports = { bot, launchBot, sendMintNotification };

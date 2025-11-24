@@ -7,8 +7,10 @@ const { Address, toNano, beginCell, Cell, TupleBuilder } = require('@ton/core');
 const { TonClient } = require('@ton/ton');
 const fs = require('fs').promises;
 const path = require('path');
+const { sendMintNotification } = require('./bot'); // Import hàm gửi thông báo
 
 const router = express.Router();
+
 
 // Mảng lưu trữ các mint request (trong thực tế nên dùng database)
 const mintRequests = [];
@@ -358,7 +360,6 @@ router.post('/debug/message-hash', (req, res) => {
       .replace(/=+$/,'');
 
     return res.status(200).json({
-      success: true,
       hash_base64url: b64url,
       hash_hex: Buffer.from(hash).toString('hex')
     });
@@ -367,5 +368,39 @@ router.post('/debug/message-hash', (req, res) => {
   }
 });
 
-module.exports = router;
+/**
+ * POST /api/notify-mint
+ * Trigger thông báo Telegram khi mint thành công
+ */
+router.post('/notify-mint', async (req, res) => {
+  try {
+    const { nftName, nftImage, minterAddress, collectionAddress } = req.body;
 
+    if (!nftName || !nftImage || !minterAddress) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    console.log('📢 Received mint notification request:', { nftName, minterAddress });
+
+    // Tạo link explorer (ưu tiên collectionAddress gửi lên, fallback về env)
+    const colAddr = collectionAddress || COLLECTION_ADDRESS;
+    // Link tới NFT Item (hiện tại chưa biết chính xác index, nên trỏ về Collection hoặc ví minter)
+    // Tạm thởi trỏ về ví người mint để xem giao dịch
+    const explorerUrl = `https://tonviewer.com/${minterAddress}`;
+
+    await sendMintNotification({
+      nftName,
+      nftImage,
+      minterAddress,
+      explorerUrl
+    });
+
+    return res.status(200).json({ success: true, message: 'Notification sent' });
+  } catch (error) {
+    console.error('❌ Error sending mint notification:', error);
+    // Không trả về lỗi 500 để tránh làm frontend báo lỗi đỏ, vì đây chỉ là tính năng phụ
+    return res.status(200).json({ success: false, error: error.message });
+  }
+});
+
+module.exports = router;
