@@ -376,6 +376,13 @@ router.post('/notify-mint', async (req, res) => {
   try {
     const { nftName, nftImage, minterAddress, collectionAddress } = req.body;
 
+    // DEBUG LOG: Kiểm tra cấu hình Bot
+    console.log('📢 DEBUG NOTIFICATION:', {
+      hasChannelId: !!process.env.TELEGRAM_CHANNEL_ID,
+      channelId: process.env.TELEGRAM_CHANNEL_ID, // Cẩn thận lộ ID nếu log public
+      body: req.body
+    });
+
     if (!nftName || !nftImage || !minterAddress) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
