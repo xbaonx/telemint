@@ -110,7 +110,8 @@ const sendMintNotification = async (mintData) => {
             caption: message,
             parse_mode: 'Markdown',
             ...Markup.inlineKeyboard([
-                [Markup.button.webApp('🔨 Mint Your Own', WEBAPP_URL)]
+                // Channel không hỗ trợ WebApp button, phải dùng URL button
+                [Markup.button.url('🔨 Mint Your Own', WEBAPP_URL)]
             ])
         });
         console.log(`✅ Notification sent to channel ${channelId}`);
