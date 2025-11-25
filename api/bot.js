@@ -66,9 +66,10 @@ bot.on('message', (ctx) => {
 // Hàm khởi động bot (dùng cho polling hoặc webhook)
 const launchBot = async () => {
     try {
-        // Trong môi trường dev thì dùng polling, prod thì có thể dùng webhook nếu cấu hình
         console.log('🤖 Starting Telegram Bot...');
-        bot.launch();
+        
+        // Thêm dropPendingUpdates để bỏ qua tin nhắn cũ khi khởi động lại
+        await bot.launch({ dropPendingUpdates: true });
         console.log('✅ Telegram Bot started!');
         
         // Graceful stop
@@ -76,6 +77,10 @@ const launchBot = async () => {
         process.once('SIGTERM', () => bot.stop('SIGTERM'));
     } catch (error) {
         console.error('❌ Failed to start bot:', error);
+        if (error.response && error.response.error_code === 409) {
+            console.warn('⚠️ Conflict detected: Another bot instance is running. Keeping server alive without bot.');
+            // Không exit process để server vẫn chạy được API/Web
+        }
     }
 };
 
