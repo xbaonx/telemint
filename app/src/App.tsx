@@ -1,11 +1,7 @@
 import { useEffect, useState } from 'react';
-import ReactGA from 'react-ga4';
+import { analytics, logEvent } from './lib/firebase';
 import { TonConnectButton, useTonAddress, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { Wallet } from 'lucide-react';
-
-// Initialize GA4
-const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-XXXXXXXXXX';
-ReactGA.initialize(GA_MEASUREMENT_ID);
 
 import { UploadCard } from './components/UploadCard';
 import { MintButton } from './components/MintButton';
@@ -21,31 +17,25 @@ function App() {
   const [tonConnectUI] = useTonConnectUI();
   const wallet = useTonWallet();
   
-  // Track Page View & User Login
+  // Track User Login
   useEffect(() => {
-    ReactGA.send({ hitType: "pageview", page: window.location.pathname + window.location.search, title: "Home" });
-    
     // Identify User if available from Telegram
     const telegramUser = telegram.getUser();
     if (telegramUser) {
-        ReactGA.set({ userId: telegramUser.id.toString() });
-        ReactGA.event({
-            category: "User",
-            action: "app_open_telegram",
-            label: telegramUser.username || telegramUser.first_name
+        logEvent(analytics, "app_open_telegram", {
+            username: telegramUser.username || telegramUser.first_name,
+            user_id: telegramUser.id.toString()
         });
     } else {
-        ReactGA.event({ category: "User", action: "app_open_web" });
+        logEvent(analytics, "app_open_web");
     }
   }, []);
 
   // Track Wallet Connection
   useEffect(() => {
     if (userAddress) {
-        ReactGA.event({
-            category: "Wallet",
-            action: "connect_wallet",
-            label: userAddress
+        logEvent(analytics, "connect_wallet", {
+            wallet_address: userAddress
         });
     }
   }, [userAddress]);
@@ -253,11 +243,10 @@ function App() {
     console.log('🖊️ Mint successful:', { hash });
 
     // Track Mint Event
-    ReactGA.event({
-      category: "NFT",
-      action: "mint_success",
-      label: nftName,
-      value: Number(getMintPriceNanoton()) / 1_000_000_000 // Convert to TON for value tracking
+    logEvent(analytics, "mint_success", {
+      nft_name: nftName,
+      price_ton: Number(getMintPriceNanoton()) / 1_000_000_000,
+      transaction_hash: hash
     });
 
     // Notify Telegram Channel via API
