@@ -6,6 +6,7 @@ import { Wallet } from 'lucide-react';
 import { UploadCard } from './components/UploadCard';
 import { MintButton } from './components/MintButton';
 import { SuccessSheet } from './components/SuccessSheet';
+import { Footer } from './components/Footer';
 import { uploadToIPFS } from './lib/ipfs';
 import { getMintPriceNanoton, formatAddress, registerDebugHelpers, getCollectionAddress, buildMintPayload } from './lib/ton';
 import { telegram } from './lib/telegram';
@@ -453,9 +454,7 @@ function App() {
         )}
 
         {/* Footer */}
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>Powered by TON Blockchain 💎</p>
-        </div>
+        <Footer />
       </div>
     </div>
   );
