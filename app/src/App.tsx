@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
+import ReactGA from 'react-ga4';
 import { TonConnectButton, useTonAddress, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { Wallet } from 'lucide-react';
+
+// Initialize GA4
+const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-XXXXXXXXXX';
+ReactGA.initialize(GA_MEASUREMENT_ID);
+
 import { UploadCard } from './components/UploadCard';
 import { MintButton } from './components/MintButton';
 import { SuccessSheet } from './components/SuccessSheet';
@@ -14,6 +20,36 @@ function App() {
   const userAddress = useTonAddress();
   const [tonConnectUI] = useTonConnectUI();
   const wallet = useTonWallet();
+  
+  // Track Page View & User Login
+  useEffect(() => {
+    ReactGA.send({ hitType: "pageview", page: window.location.pathname + window.location.search, title: "Home" });
+    
+    // Identify User if available from Telegram
+    const telegramUser = telegram.getUser();
+    if (telegramUser) {
+        ReactGA.set({ userId: telegramUser.id.toString() });
+        ReactGA.event({
+            category: "User",
+            action: "app_open_telegram",
+            label: telegramUser.username || telegramUser.first_name
+        });
+    } else {
+        ReactGA.event({ category: "User", action: "app_open_web" });
+    }
+  }, []);
+
+  // Track Wallet Connection
+  useEffect(() => {
+    if (userAddress) {
+        ReactGA.event({
+            category: "Wallet",
+            action: "connect_wallet",
+            label: userAddress
+        });
+    }
+  }, [userAddress]);
+
   const [state, setState] = useState<AppState>('idle');
 
   // File state
@@ -215,6 +251,14 @@ function App() {
     setTxHash(hash);
     setState('success');
     console.log('🖊️ Mint successful:', { hash });
+
+    // Track Mint Event
+    ReactGA.event({
+      category: "NFT",
+      action: "mint_success",
+      label: nftName,
+      value: Number(getMintPriceNanoton()) / 1_000_000_000 // Convert to TON for value tracking
+    });
 
     // Notify Telegram Channel via API
     try {
