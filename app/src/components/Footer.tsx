@@ -1,4 +1,4 @@
-import { Shield, FileText, MessageCircle, ExternalLink, Hexagon } from 'lucide-react';
+import { Shield, FileText, MessageCircle, ExternalLink } from 'lucide-react';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -10,9 +10,7 @@ export function Footer() {
         {/* Brand Column */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-              <Hexagon size={20} fill="currentColor" />
-            </div>
+            <img src="/logo.png" alt="Mint Box Logo" className="w-8 h-8 object-contain rounded-lg" />
             <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
               Mint Box
             </span>
