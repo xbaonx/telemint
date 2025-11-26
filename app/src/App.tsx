@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { analytics, logEvent } from './lib/firebase';
 import { TonConnectButton, useTonAddress, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
-import { Wallet } from 'lucide-react';
+import { Wallet, Shield } from 'lucide-react';
 
 import { UploadCard } from './components/UploadCard';
 import { MintButton } from './components/MintButton';
 import { SuccessSheet } from './components/SuccessSheet';
 import { Footer } from './components/Footer';
+import { LandingContent } from './components/LandingContent';
 import { uploadToIPFS } from './lib/ipfs';
 import { getMintPriceNanoton, formatAddress, registerDebugHelpers, getCollectionAddress, buildMintPayload } from './lib/ton';
 import { telegram } from './lib/telegram';
@@ -283,24 +284,27 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+    <div className="min-h-screen bg-slate-950 text-gray-100 p-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="mb-8 mt-4">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="Mint Box Logo" className="w-10 h-10 object-contain rounded-lg" />
-              <h1 className="text-3xl font-bold text-gray-800">
-                Mint Box
-              </h1>
+              <img src="/logo.png" alt="Mint Box Logo" className="w-12 h-12 object-contain rounded-xl shadow-lg shadow-blue-500/20" />
+              <div>
+                <h1 className="text-3xl font-bold text-white tracking-tight">
+                  Mint Box
+                </h1>
+                <p className="text-xs text-blue-400 font-medium">TON NFT MINTER</p>
+              </div>
             </div>
             <TonConnectButton />
           </div>
 
           {userAddress && (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Wallet className="w-4 h-4" />
-              <span>Connected: {formatAddress(userAddress)}</span>
+            <div className="flex items-center gap-2 text-sm text-gray-400 bg-white/5 w-fit px-3 py-1.5 rounded-full border border-white/10">
+              <Wallet className="w-4 h-4 text-blue-400" />
+              <span>Connected: <span className="font-mono text-gray-200">{formatAddress(userAddress)}</span></span>
             </div>
           )}
         </div>
@@ -309,37 +313,37 @@ function App() {
         {state === 'success' ? (
           <SuccessSheet txHash={txHash} onReset={handleReset} />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Debug tools */}
             {debugMode && (
-              <div className="card border-dashed space-y-3">
+              <div className="card border-dashed space-y-3 border-white/20 bg-white/5">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm text-gray-700">
+                  <p className="text-sm text-gray-300">
                     Debug: Send a test transaction of 0.01 TON to the connected wallet to verify wallet connection.
                   </p>
-                  <button onClick={handleDebugTransferClick} className="btn-secondary whitespace-nowrap">
+                  <button onClick={handleDebugTransferClick} className="btn-secondary whitespace-nowrap bg-white/10 text-white hover:bg-white/20 border-white/10">
                     Run Debug Transfer
                   </button>
                 </div>
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-gray-500">
                   Collection: <span className="font-mono break-all">{collectionAddress}</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <button onClick={handleDebugCollectionNoPayload} className="btn-outline text-xs">
+                  <button onClick={handleDebugCollectionNoPayload} className="btn-outline text-xs text-gray-300 border-gray-600 hover:border-gray-400">
                     Send 0.01 TON to Collection (no payload)
                   </button>
-                  <button onClick={handleDebugCollectionWithPayload} className="btn-outline text-xs">
+                  <button onClick={handleDebugCollectionWithPayload} className="btn-outline text-xs text-gray-300 border-gray-600 hover:border-gray-400">
                     Send payload to Collection (mintFee + 0.35 TON)
                   </button>
-                  <button onClick={handleDebugPayloadToSelf} className="btn-outline text-xs">
+                  <button onClick={handleDebugPayloadToSelf} className="btn-outline text-xs text-gray-300 border-gray-600 hover:border-gray-400">
                     Send 0.05 TON + payload to My Wallet
                   </button>
-                  <button onClick={handleOpenWalletModal} className="btn-outline text-xs">
+                  <button onClick={handleOpenWalletModal} className="btn-outline text-xs text-gray-300 border-gray-600 hover:border-gray-400">
                     Switch Wallet (Tonkeeper)
                   </button>
                 </div>
                 {wallet && (
-                  <div className="text-xs text-gray-600">
+                  <div className="text-xs text-gray-500">
                     Connected wallet: <span className="font-mono">{(wallet as any)?.device?.appName || (wallet as any)?.name || 'Unknown'}</span>
                   </div>
                 )}
@@ -355,34 +359,35 @@ function App() {
 
             {/* Metadata Form */}
             {selectedFile && (
-              <div className="card">
-                <h2 className="text-xl font-bold mb-4 text-gray-800">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm shadow-xl">
+                <h2 className="text-xl font-bold mb-6 text-white flex items-center gap-2">
+                  <span className="w-1 h-6 bg-blue-500 rounded-full"></span>
                   NFT Details
                 </h2>
 
-                <div className="space-y-4">
+                <div className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Name *
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Name <span className="text-red-400">*</span>
                     </label>
                     <input
                       type="text"
                       value={nftName}
                       onChange={(e) => setNftName(e.target.value)}
-                      className="input-field"
+                      className="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                       placeholder="My Awesome NFT"
                       disabled={state !== 'idle'}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
                       Description (optional)
                     </label>
                     <textarea
                       value={nftDescription}
                       onChange={(e) => setNftDescription(e.target.value)}
-                      className="input-field resize-none"
+                      className="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-none"
                       rows={3}
                       placeholder="Tell us about your NFT..."
                       disabled={state !== 'idle'}
@@ -394,26 +399,27 @@ function App() {
                     <button
                       onClick={handleUpload}
                       disabled={state === 'uploading' || !nftName.trim()}
-                      className="btn-primary w-full"
+                      className="btn-primary w-full py-4 text-lg font-semibold shadow-lg shadow-blue-600/20"
                     >
                       {state === 'uploading' ? (
                         <span className="flex items-center justify-center gap-2">
-                          <div className="loader" />
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           Uploading to IPFS...
                         </span>
                       ) : (
-                        'Upload to IPFS'
+                        'Upload Metadata to IPFS'
                       )}
                     </button>
                   )}
 
                   {/* Metadata URI Display */}
                   {metadataUri && (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-sm text-green-800 font-medium mb-1">
-                        ✅ Uploaded to IPFS
+                    <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+                      <p className="text-sm text-green-400 font-medium mb-1 flex items-center gap-2">
+                        <Shield size={16} />
+                        Metadata Secured on IPFS
                       </p>
-                      <p className="text-xs text-green-600 font-mono break-all">
+                      <p className="text-xs text-green-300/70 font-mono break-all mt-1 opacity-80">
                         {metadataUri}
                       </p>
                     </div>
@@ -424,13 +430,13 @@ function App() {
 
             {/* Mint Button */}
             {selectedFile && metadataUri && (
-              <div className="card">
-                <div className="mb-4">
-                  <p className="text-sm text-gray-600 mb-2">
-                    Ready to mint your NFT!
+              <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-2xl p-6 backdrop-blur-md">
+                <div className="mb-6">
+                  <p className="text-lg font-semibold text-white mb-2">
+                    Ready to Mint! 🚀
                   </p>
-                  <p className="text-xs text-gray-500">
-                    Ensure you have enough TON in your wallet to cover minting fees and gas.
+                  <p className="text-sm text-blue-200/80">
+                    Ensure you have enough TON in your wallet to cover the network gas fees.
                   </p>
                 </div>
 
@@ -442,16 +448,17 @@ function App() {
                 />
 
                 {!userAddress && (
-                  <p className="text-center text-sm text-red-500 mt-3">
+                  <p className="text-center text-sm text-red-400 mt-4 bg-red-500/10 py-2 rounded-lg border border-red-500/20">
                     Please connect your wallet to mint NFT
                   </p>
                 )}
-                
-                
               </div>
             )}
           </div>
         )}
+        
+        {/* Landing Page Content - Now Integrated! */}
+        <LandingContent />
 
         {/* Footer */}
         <Footer />
