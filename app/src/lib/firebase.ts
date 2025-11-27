@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getStorage, ref, uploadBytes } from "firebase/storage";
 import { getAnalytics, logEvent } from "firebase/analytics";
+import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -17,7 +18,39 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const storage = getStorage(app);
 export const analytics = getAnalytics(app);
+export const db = getFirestore(app);
 export { logEvent };
+
+/**
+ * Save or Update Telegram User to Firestore
+ */
+export async function saveUserToFirestore(user: any, walletAddress?: string) {
+    if (!user || !user.id) return;
+
+    try {
+        const userRef = doc(db, "users", user.id.toString());
+        const userData: any = {
+            id: user.id,
+            first_name: user.first_name || "",
+            last_name: user.last_name || "",
+            username: user.username || "",
+            language_code: user.language_code || "en",
+            is_premium: user.is_premium || false,
+            last_seen: serverTimestamp(), // Auto server time
+            app_opened_count: 1 // We will increment this ideally, but set/merge works for now
+        };
+
+        if (walletAddress) {
+            userData.wallet_address = walletAddress;
+        }
+
+        // Merge: true allows updating existing docs without overwriting missing fields
+        await setDoc(userRef, userData, { merge: true });
+        console.log("💾 User saved to Firestore:", user.id);
+    } catch (error) {
+        console.error("❌ Error saving user to Firestore:", error);
+    }
+}
 
 /**
  * Upload a file (image) to Firebase Storage

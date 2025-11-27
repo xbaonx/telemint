@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { analytics, logEvent } from './lib/firebase';
+import { analytics, logEvent, saveUserToFirestore } from './lib/firebase';
 import { TonConnectButton, useTonAddress, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { Wallet, Shield } from 'lucide-react';
 
@@ -19,26 +19,36 @@ function App() {
   const [tonConnectUI] = useTonConnectUI();
   const wallet = useTonWallet();
   
-  // Track User Login
+  // Track User Login & Save to DB
   useEffect(() => {
     // Identify User if available from Telegram
     const telegramUser = telegram.getUser();
     if (telegramUser) {
+        // 1. Log Analytics
         logEvent(analytics, "app_open_telegram", {
             username: telegramUser.username || telegramUser.first_name,
             user_id: telegramUser.id.toString()
         });
+        
+        // 2. Save to Firestore Database (For Marketing)
+        saveUserToFirestore(telegramUser);
     } else {
         logEvent(analytics, "app_open_web");
     }
   }, []);
 
-  // Track Wallet Connection
+  // Track Wallet Connection & Update DB
   useEffect(() => {
     if (userAddress) {
         logEvent(analytics, "connect_wallet", {
             wallet_address: userAddress
         });
+
+        // Update User with Wallet Address
+        const telegramUser = telegram.getUser();
+        if (telegramUser) {
+            saveUserToFirestore(telegramUser, userAddress);
+        }
     }
   }, [userAddress]);
 
