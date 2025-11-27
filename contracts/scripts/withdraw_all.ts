@@ -26,7 +26,12 @@ async function main() {
         'EQAdMIvlQbOo6XzIonf6z_u-ehWv5rnl__EACA1RkjnchTOV',
         'EQDL6P2VMga0K5ADkAZRYJkcc2RBlMGzq7GyrVF5Bvi7ltGM',
         'EQAnesrKquzkHfG5qIv0saSgSF9OXSSwAX4OsEvHbyYb5CUm',
-        'EQDAWv2zh6Krad5mR1ItCU9jE100S8GpwOKdSMkAw6fmYvoJ'
+        'EQDAWv2zh6Krad5mR1ItCU9jE100S8GpwOKdSMkAw6fmYvoJ',
+        'EQAUV2rAMoeVUyYUVdXKMqVRvMkoBZFu9U9-jiijBeBLxKYr',
+        'EQDD8lzFn8TTikz_FJmqqgq3Qz4G58HeP6Au70uq-Vs2bdp9',
+        'EQA_1fLBaIp8cLkx5n-pHQaLJPcZbvHSbBwvM73L41QaPzKv',
+        'EQDVkLbkXF6mP1187qndZUIW72ti8VvihgJlr86O4eQutunR',
+        'EQByNCFUBlJOziQZBI4OB61mIXiDnI10bDB71A1FD3zFMaX_'
     ];
 
     let seqno = await wallet.getSeqno();
