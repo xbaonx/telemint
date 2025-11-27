@@ -3,7 +3,7 @@ import { Loader2, Sparkles } from 'lucide-react';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 // Loại bỏ import không cần thiết 
 // import type { SendTransactionResponse } from '@tonconnect/ui-react';
-import { formatNanoTon, sendMintTransaction } from '../lib/ton';
+import { sendMintTransaction } from '../lib/ton';
 import { telegram } from '../lib/telegram';
 
 interface MintButtonProps {
@@ -15,7 +15,6 @@ interface MintButtonProps {
 
 export function MintButton({
   metadataUri,
-  mintPrice,
   onSuccess,
   disabled,
 }: MintButtonProps) {
@@ -114,7 +113,7 @@ export function MintButton({
       ) : (
         <>
           <Sparkles className="w-5 h-5" />
-          <span>Mint NFT for {formatNanoTon(mintPrice)} TON</span>
+          <span>Mint NFT</span>
         </>
       )}
     </button>
