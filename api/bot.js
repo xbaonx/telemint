@@ -1,4 +1,44 @@
 const { Telegraf, Markup } = require('telegraf');
+const { initializeApp } = require('firebase/app');
+const { getFirestore, doc, setDoc, serverTimestamp } = require('firebase/firestore');
+
+// --- Firebase Setup ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDEpYVturfJb_5W-WeERRr8uIzv-oIcnjA",
+  authDomain: "telemint-storage.firebaseapp.com",
+  projectId: "telemint-storage",
+  storageBucket: "telemint-storage.firebasestorage.app",
+  messagingSenderId: "375370707608",
+  appId: "1:375370707608:web:67631c7c4680a8602296ed",
+  measurementId: "G-KBZTSEW89F"
+};
+
+// Initialize Firebase
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+
+// Save User Helper
+async function saveUserFromBot(user) {
+    if (!user || !user.id) return;
+    try {
+        const userRef = doc(db, "users", user.id.toString());
+        const userData = {
+            id: user.id,
+            first_name: user.first_name || "",
+            last_name: user.last_name || "",
+            username: user.username || "",
+            language_code: user.language_code || "en",
+            is_premium: user.is_premium || false,
+            last_seen: serverTimestamp(),
+            from_source: 'bot_start' // Mark source
+        };
+        // Merge to avoid overwriting existing fields like wallet_address
+        await setDoc(userRef, userData, { merge: true });
+        console.log(`💾 [Bot] User saved: ${user.id} (${user.username})`);
+    } catch (error) {
+        console.error("❌ [Bot] Error saving user:", error);
+    }
+}
 
 // Khởi tạo bot với token từ biến môi trường
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
@@ -7,7 +47,12 @@ const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 const WEBAPP_URL = process.env.WEBAPP_URL || 'https://telemint-1.onrender.com';
 
 // Lệnh /start
-bot.start((ctx) => {
+bot.start(async (ctx) => {
+    // Save user to DB immediately
+    if (ctx.from) {
+        saveUserFromBot(ctx.from);
+    }
+
     const welcomeMessage = `
 🎨 *Welcome to Mint Box - The Easiest NFT Minter on TON!*
 
