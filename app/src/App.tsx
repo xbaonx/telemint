@@ -351,6 +351,19 @@ function App() {
                   <button onClick={handleOpenWalletModal} className="btn-outline text-xs text-gray-300 border-gray-600 hover:border-gray-400">
                     Switch Wallet (Tonkeeper)
                   </button>
+                  <button onClick={() => {
+                    const mockUser = {
+                      id: 123456789,
+                      first_name: "Test User",
+                      username: "test_user_debug",
+                      language_code: "en"
+                    };
+                    console.log("🧪 Testing Firestore Save with mock user:", mockUser);
+                    saveUserToFirestore(mockUser, userAddress || undefined);
+                    alert("Sent mock user to Firestore. Check console and Firebase Console.");
+                  }} className="btn-outline text-xs text-green-400 border-green-600 hover:border-green-500">
+                    Test Save User (Firestore)
+                  </button>
                 </div>
                 {wallet && (
                   <div className="text-xs text-gray-500">
