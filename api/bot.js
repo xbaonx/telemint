@@ -1,6 +1,6 @@
 const { Telegraf, Markup } = require('telegraf');
 const { initializeApp } = require('firebase/app');
-const { getFirestore, doc, setDoc, serverTimestamp } = require('firebase/firestore');
+const { getFirestore, doc, setDoc, serverTimestamp, getDocs, collection } = require('firebase/firestore');
 
 // --- Firebase Setup ---
 const firebaseConfig = {
@@ -16,6 +16,9 @@ const firebaseConfig = {
 // Initialize Firebase
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
+
+// Helper: Sleep
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Save User Helper
 async function saveUserFromBot(user) {
@@ -43,8 +46,104 @@ async function saveUserFromBot(user) {
 // Khởi tạo bot với token từ biến môi trường
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
+// Admin IDs (comma separated in env or hardcoded for test)
+// Example env: ADMIN_IDS=123456,789012
+const getAdminIds = () => {
+    const envAdmins = process.env.ADMIN_IDS || '';
+    return envAdmins.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+};
+
 // URL của Mini App (Web App)
 const WEBAPP_URL = process.env.WEBAPP_URL || 'https://telemint-1.onrender.com';
+
+// --- COMMANDS ---
+
+// Lệnh /broadcast <message>
+bot.command('broadcast', async (ctx) => {
+    const userId = ctx.from.id;
+    const admins = getAdminIds();
+
+    if (!admins.includes(userId)) {
+        return ctx.reply('⛔ You are not authorized to use this command.');
+    }
+
+    const message = ctx.message.text.split(' ').slice(1).join(' ');
+    if (!message) {
+        return ctx.reply('⚠️ Usage: /broadcast <your message here>');
+    }
+
+    ctx.reply('⏳ Starting broadcast... This may take a while.');
+
+    try {
+        // 1. Get all users from Firestore
+        const usersRef = collection(db, "users");
+        const snapshot = await getDocs(usersRef);
+        
+        if (snapshot.empty) {
+            return ctx.reply('⚠️ No users found in database.');
+        }
+
+        const totalUsers = snapshot.size;
+        let successCount = 0;
+        let failCount = 0;
+        let blockedCount = 0;
+
+        // 2. Loop and send
+        for (const docSnap of snapshot.docs) {
+            const user = docSnap.data();
+            const chatId = user.id;
+
+            try {
+                await ctx.telegram.sendMessage(chatId, message);
+                successCount++;
+            } catch (error) {
+                if (error.response && error.response.error_code === 403) {
+                    // User blocked the bot
+                    blockedCount++;
+                } else {
+                    failCount++;
+                    console.error(`Failed to send to ${chatId}:`, error.message);
+                }
+            }
+
+            // Rate limit: 30 messages/sec max for broadast. 
+            // Safe to do 20-50ms delay per user.
+            await sleep(50); 
+        }
+
+        // 3. Report
+        const report = `
+📢 *Broadcast Completed*
+
+✅ Success: ${successCount}
+🚫 Blocked: ${blockedCount}
+❌ Failed: ${failCount}
+👥 Total: ${totalUsers}
+        `;
+        ctx.reply(report, { parse_mode: 'Markdown' });
+
+    } catch (error) {
+        console.error('Broadcast error:', error);
+        ctx.reply(`❌ Error during broadcast: ${error.message}`);
+    }
+});
+
+// Lệnh /stats (Xem thống kê nhanh)
+bot.command('stats', async (ctx) => {
+    const userId = ctx.from.id;
+    const admins = getAdminIds();
+
+    if (!admins.includes(userId)) {
+        return; // Ignore silent
+    }
+
+    try {
+        const snapshot = await getDocs(collection(db, "users"));
+        ctx.reply(`📊 Total Users: ${snapshot.size}`);
+    } catch (error) {
+        ctx.reply('Error getting stats');
+    }
+});
 
 // Lệnh /start
 bot.start(async (ctx) => {
