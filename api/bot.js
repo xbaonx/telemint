@@ -204,7 +204,13 @@ bot.action('help', (ctx) => {
 
 // Xử lý các tin nhắn khác
 bot.on('message', (ctx) => {
-    ctx.reply('Please use /start to open the menu.');
+    // Check if it is a private chat
+    if (ctx.chat.type === 'private') {
+        // Ignore if it is a command (handled elsewhere)
+        if (ctx.message.text && ctx.message.text.startsWith('/')) return;
+        
+        ctx.reply('Please use /start to open the menu.');
+    }
 });
 
 // Hàm khởi động bot (dùng cho polling hoặc webhook)
@@ -269,4 +275,4 @@ const sendMintNotification = async (mintData) => {
     }
 };
 
-module.exports = { bot, launchBot, sendMintNotification };
+module.exports = { bot, launchBot, sendMintNotification, db };

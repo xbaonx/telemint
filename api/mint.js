@@ -7,9 +7,13 @@ const { Address, toNano, beginCell, Cell, TupleBuilder } = require('@ton/core');
 const { TonClient } = require('@ton/ton');
 const fs = require('fs').promises;
 const path = require('path');
-const { sendMintNotification } = require('./bot'); // Import hàm gửi thông báo
+const { sendMintNotification, bot, db } = require('./bot'); // Import bot & db
+const { collection, getDocs } = require('firebase/firestore');
 
 const router = express.Router();
+
+// Helper: Sleep
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 
 // Mảng lưu trữ các mint request (trong thực tế nên dùng database)
@@ -407,6 +411,89 @@ router.post('/notify-mint', async (req, res) => {
     console.error('❌ Error sending mint notification:', error);
     // Không trả về lỗi 500 để tránh làm frontend báo lỗi đỏ, vì đây chỉ là tính năng phụ
     return res.status(200).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/broadcast-message
+ * Gửi tin nhắn hàng loạt cho user từ Admin Panel
+ */
+router.post('/broadcast-message', async (req, res) => {
+  try {
+    const { message, secret } = req.body;
+    const ADMIN_SECRET = process.env.ADMIN_SECRET || 'admin123'; // Default fallback (should change in prod)
+
+    if (secret !== ADMIN_SECRET) {
+      return res.status(403).json({ error: 'Invalid admin secret' });
+    }
+
+    if (!message) {
+      return res.status(400).json({ error: 'Message content is required' });
+    }
+
+    console.log('📢 Starting broadcast from Admin Panel...');
+
+    // 1. Get users
+    const usersRef = collection(db, "users");
+    const snapshot = await getDocs(usersRef);
+    
+    if (snapshot.empty) {
+      return res.status(200).json({ 
+        success: true, 
+        message: 'No users found to broadcast',
+        stats: { total: 0, success: 0, failed: 0, blocked: 0 }
+      });
+    }
+
+    const totalUsers = snapshot.size;
+    let successCount = 0;
+    let failCount = 0;
+    let blockedCount = 0;
+
+    // 2. Loop & Send (Non-blocking response if list is huge? No, keep simple for now)
+    // Note: If list is huge (>1000), this request might timeout. 
+    // ideally should be background job. But for < 1000 users, it's fine.
+    
+    const promises = snapshot.docs.map(async (docSnap, index) => {
+       // Add delay based on index to avoid rate limit (30 req/s)
+       // Stagger requests: 50ms per user
+       await sleep(index * 50);
+
+       const user = docSnap.data();
+       const chatId = user.id;
+
+       try {
+           await bot.telegram.sendMessage(chatId, message);
+           successCount++;
+       } catch (error) {
+           if (error.response && error.response.error_code === 403) {
+               blockedCount++;
+           } else {
+               failCount++;
+               console.error(`Failed to send to ${chatId}:`, error.message);
+           }
+       }
+    });
+
+    // Wait for all (or most)
+    await Promise.all(promises);
+
+    console.log(`✅ Broadcast complete. Success: ${successCount}, Blocked: ${blockedCount}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Broadcast completed',
+      stats: {
+        total: totalUsers,
+        success: successCount,
+        failed: failCount,
+        blocked: blockedCount
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Broadcast error:', error);
+    return res.status(500).json({ error: error.message });
   }
 });
 

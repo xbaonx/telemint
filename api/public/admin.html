@@ -166,6 +166,39 @@
             </div>
         </div>
 
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <span>📢 Broadcast Message</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="admin-secret" class="form-label">Admin Secret</label>
+                                    <input type="password" class="form-control" id="admin-secret" placeholder="Enter admin secret">
+                                    <div class="form-text">Required to verify authorization.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="broadcast-message" class="form-label">Message Content</label>
+                                    <textarea class="form-control" id="broadcast-message" rows="3" placeholder="Enter message to send to ALL users..."></textarea>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div id="broadcast-status" class="text-muted small"></div>
+                                    <button class="btn btn-primary" onclick="sendBroadcast()" id="btn-broadcast">
+                                        Send Broadcast 🚀
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <button class="btn btn-primary refresh-btn" onclick="refreshAll()">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
                 <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
@@ -350,6 +383,58 @@
             loadMintRequests();
             loadAdminInfo();
             loadConfig();
+        }
+
+        // Send Broadcast
+        async function sendBroadcast() {
+            const secret = document.getElementById('admin-secret').value;
+            const message = document.getElementById('broadcast-message').value;
+            const btn = document.getElementById('btn-broadcast');
+            const statusDiv = document.getElementById('broadcast-status');
+
+            if (!secret || !message) {
+                alert('Please enter both Secret and Message');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to send this message to ALL users?')) {
+                return;
+            }
+
+            // UI Loading
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+            statusDiv.innerHTML = '<span class="text-info">Broadcasting... please wait...</span>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/broadcast-message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret, message })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const stats = result.stats;
+                    statusDiv.innerHTML = `
+                        <span class="text-success fw-bold">✅ Done!</span>
+                        <span class="ms-2 badge bg-success">Sent: ${stats.success}</span>
+                        <span class="ms-1 badge bg-warning text-dark">Blocked: ${stats.blocked}</span>
+                        <span class="ms-1 badge bg-danger">Failed: ${stats.failed}</span>
+                    `;
+                    document.getElementById('broadcast-message').value = ''; // Clear message
+                } else {
+                    statusDiv.innerHTML = `<span class="text-danger fw-bold">❌ Error: ${result.error}</span>`;
+                }
+
+            } catch (error) {
+                console.error('Broadcast error:', error);
+                statusDiv.innerHTML = `<span class="text-danger fw-bold">❌ Network Error</span>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Send Broadcast 🚀';
+            }
         }
 
         // Setup auto-refresh
