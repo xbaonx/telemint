@@ -130,11 +130,32 @@
             <!-- Stats Panel -->
             <div class="col-lg-4 col-md-12">
                 <div class="card h-100">
-                    <div class="card-header">Thống kê</div>
+                    <div class="card-header">Thống kê Mint</div>
                     <div class="card-body" id="stats-panel">
                         <div class="loading">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Stats Row -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
+                        <span>👥 User Growth Stats</span>
+                        <button class="btn btn-sm btn-light text-primary" onclick="loadUserStats()">Refresh Users</button>
+                    </div>
+                    <div class="card-body">
+                        <div id="user-stats-content" class="row text-center">
+                             <div class="loading w-100">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -328,6 +349,38 @@
             }
         }
 
+        // Load user stats
+        async function loadUserStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/stats/users`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const { totalUsers, premiumCount, telegramSourceCount } = data.stats;
+                    
+                    document.getElementById('user-stats-content').innerHTML = `
+                        <div class="col-md-4">
+                            <h2 class="display-4 fw-bold text-primary">${totalUsers}</h2>
+                            <p class="text-muted text-uppercase small fw-bold">Total Users</p>
+                        </div>
+                        <div class="col-md-4">
+                             <h2 class="display-4 fw-bold text-warning">${premiumCount}</h2>
+                            <p class="text-muted text-uppercase small fw-bold">Premium Users</p>
+                        </div>
+                        <div class="col-md-4">
+                             <h2 class="display-4 fw-bold text-info">${telegramSourceCount}</h2>
+                            <p class="text-muted text-uppercase small fw-bold">From Bot Start</p>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('user-stats-content').innerHTML = `<div class="alert alert-danger w-100">Failed to load user stats</div>`;
+                }
+            } catch (error) {
+                console.error('Error loading user stats:', error);
+                document.getElementById('user-stats-content').innerHTML = `<div class="alert alert-danger w-100">Network Error</div>`;
+            }
+        }
+
         // Update stats
         function updateStats(requests) {
             if (!requests || !requests.length) {
@@ -383,6 +436,7 @@
             loadMintRequests();
             loadAdminInfo();
             loadConfig();
+            loadUserStats();
         }
 
         // Send Broadcast

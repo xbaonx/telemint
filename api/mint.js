@@ -497,4 +497,40 @@ router.post('/broadcast-message', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/stats/users
+ * Lấy thống kê số lượng người dùng
+ */
+router.get('/stats/users', async (req, res) => {
+  try {
+    const usersRef = collection(db, "users");
+    const snapshot = await getDocs(usersRef);
+    
+    // Simple stats
+    const totalUsers = snapshot.size;
+    
+    // Count premium users (if any)
+    let premiumCount = 0;
+    let telegramSourceCount = 0;
+    
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.is_premium) premiumCount++;
+        if (data.from_source === 'bot_start') telegramSourceCount++;
+    });
+
+    return res.status(200).json({
+      success: true,
+      stats: {
+        totalUsers,
+        premiumCount,
+        telegramSourceCount
+      }
+    });
+  } catch (error) {
+    console.error('❌ Stats error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
