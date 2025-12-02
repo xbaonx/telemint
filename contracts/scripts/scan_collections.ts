@@ -71,7 +71,12 @@ async function main() {
             try {
                 const res = await client.runMethod(addr, 'get_collection_data');
                 // If successful, it's likely a collection
+                // Parse results: [nextItemIndex, collectionContent, ownerAddress]
+                const nextItemIndex = res.stack.readNumber();
+                // Note: We don't strictly need content/owner here, just validation it works
+                
                 console.log(chalk.green('✅ FOUND COLLECTION!'));
+                console.log(chalk.cyan(`      Next Item Index: ${nextItemIndex} (Total Minted: ${nextItemIndex})`));
                 
                 const balance = await client.getBalance(addr);
                 console.log(chalk.green(`      Balance: ${formatTon(balance)} TON`));
