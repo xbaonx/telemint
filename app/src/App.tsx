@@ -3,6 +3,7 @@ import { analytics, logEvent, saveUserToFirestore } from './lib/firebase';
 import { TonConnectButton, useTonAddress, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { Wallet, Shield } from 'lucide-react';
 
+import { JettonMinter } from './components/JettonMinter';
 import { UploadCard } from './components/UploadCard';
 import { MintButton } from './components/MintButton';
 import { SuccessSheet } from './components/SuccessSheet';
@@ -53,6 +54,7 @@ function App() {
   }, [userAddress]);
 
   const [state, setState] = useState<AppState>('idle');
+  const [activeTab, setActiveTab] = useState<'nft' | 'jetton'>('nft');
 
   // File state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -305,7 +307,7 @@ function App() {
                 <h1 className="text-3xl font-bold text-white tracking-tight">
                   Mint Box
                 </h1>
-                <p className="text-xs text-blue-400 font-medium">TON NFT MINTER</p>
+                <p className="text-xs text-blue-400 font-medium">TON {activeTab === 'nft' ? 'NFT' : 'JETTON'} MINTER</p>
               </div>
             </div>
             <TonConnectButton />
@@ -319,8 +321,26 @@ function App() {
           )}
         </div>
 
+        {/* Tab Switcher */}
+        <div className="flex p-1 bg-white/5 rounded-xl mb-8 border border-white/10">
+            <button 
+                onClick={() => setActiveTab('nft')}
+                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'nft' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' : 'text-gray-400 hover:text-white'}`}
+            >
+                Mint NFT
+            </button>
+            <button 
+                onClick={() => setActiveTab('jetton')}
+                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'jetton' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' : 'text-gray-400 hover:text-white'}`}
+            >
+                Mint Jetton
+            </button>
+        </div>
+
         {/* Main Content */}
-        {state === 'success' ? (
+        {activeTab === 'nft' ? (
+          <>
+            {state === 'success' ? (
           <SuccessSheet txHash={txHash} onReset={handleReset} />
         ) : (
           <div className="space-y-6">
@@ -482,6 +502,10 @@ function App() {
         
         {/* Landing Page Content - Now Integrated! */}
         <LandingContent />
+          </>
+        ) : (
+          <JettonMinter />
+        )}
 
         {/* Footer */}
         <Footer />

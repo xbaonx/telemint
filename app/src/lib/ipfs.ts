@@ -1,17 +1,28 @@
 import { PinataSDK } from "pinata-web3";
 
+// Initialize Pinata SDK
+// We rely on VITE_PINATA_JWT being set in .env
 const pinata = new PinataSDK({
   pinataJwt: import.meta.env.VITE_PINATA_JWT,
   pinataGateway: "gateway.pinata.cloud",
 });
 
+/**
+ * NFT Metadata structure
+ */
 export interface NFTMetadata {
   name: string;
   description?: string;
-  image: string;
-  attributes?: Array<{ trait_type: string; value: string | number }>;
+  image: string; // ipfs://CID
+  attributes?: Array<{
+    trait_type: string;
+    value: string | number;
+  }>;
 }
 
+/**
+ * Upload result
+ */
 export interface UploadResult {
   imageUri: string;
   metadataUri: string;
@@ -19,6 +30,9 @@ export interface UploadResult {
   metadataCid: string;
 }
 
+/**
+ * Upload file to IPFS via Pinata
+ */
 async function uploadFileToPinata(file: File): Promise<string> {
   try {
     const upload = await pinata.upload.file(file);
@@ -29,6 +43,9 @@ async function uploadFileToPinata(file: File): Promise<string> {
   }
 }
 
+/**
+ * Upload JSON to IPFS via Pinata
+ */
 async function uploadJsonToPinata(json: any): Promise<string> {
   try {
     const upload = await pinata.upload.json(json);
@@ -39,6 +56,9 @@ async function uploadJsonToPinata(json: any): Promise<string> {
   }
 }
 
+/**
+ * Main Upload Function
+ */
 export async function uploadToIPFS(
   file: File,
   name: string,
@@ -46,39 +66,66 @@ export async function uploadToIPFS(
 ): Promise<UploadResult> {
   try {
     console.log('🧪 Pinata IPFS flow start');
+    
+    // 1. Upload image
     console.log('📤 Uploading image to Pinata...');
     const imageCid = await uploadFileToPinata(file);
     const imageUri = `ipfs://${imageCid}`;
     console.log('✅ Image uploaded:', imageUri);
 
+    // 2. Create metadata
+    // Standard TEP-64: image should be ipfs://<cid>
     const metadata: NFTMetadata = {
       name,
       description: description || '',
-      image: `https://gateway.pinata.cloud/ipfs/${imageCid}`, // Use HTTP URL for better compatibility
+      image: imageUri, 
     };
 
+    // 3. Upload metadata
     console.log('📤 Uploading metadata to Pinata...');
     const metadataCid = await uploadJsonToPinata(metadata);
     const metadataUri = `ipfs://${metadataCid}`;
     console.log('✅ Metadata uploaded:', metadataUri);
 
-    return { metadataUri, imageUri, imageCid, metadataCid };
+    return {
+      metadataUri,
+      imageUri,
+      imageCid,
+      metadataCid,
+    };
   } catch (error) {
     console.error('Error uploading to Pinata:', error);
     throw error;
   }
 }
 
+/**
+ * Helper to get Gateway URL for display
+ */
 export function getIPFSGatewayUrl(ipfsUri: string): string {
   if (!ipfsUri) return '';
-  if (!ipfsUri.startsWith('ipfs://')) return ipfsUri;
+  if (!ipfsUri.startsWith('ipfs://')) {
+    return ipfsUri;
+  }
   const cid = ipfsUri.replace('ipfs://', '');
+  // Use Pinata Gateway for display
   return `https://gateway.pinata.cloud/ipfs/${cid}`;
 }
 
 export function validateFile(file: File): { valid: boolean; error?: string } {
   const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-  if (!validTypes.includes(file.type)) return { valid: false, error: 'Invalid file type.' };
-  if (file.size > 10 * 1024 * 1024) return { valid: false, error: 'File too large (max 10MB).' };
+  if (!validTypes.includes(file.type)) {
+    return {
+      valid: false,
+      error: 'Invalid file type. Please upload JPG, PNG, GIF, or WebP.',
+    };
+  }
+  const maxSize = 10 * 1024 * 1024; // 10MB
+  if (file.size > maxSize) {
+    return {
+      valid: false,
+      error: 'File too large. Maximum size is 10MB.',
+    };
+  }
   return { valid: true };
 }
