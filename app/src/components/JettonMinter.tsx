@@ -77,7 +77,7 @@ export function JettonMinter() {
   };
 
   return (
-    <div className="text-white font-sans pb-32">
+    <div className="text-white font-sans">
       <div className="p-5 space-y-6">
         {/* Token Logo */}
         <div className="space-y-2">
@@ -172,7 +172,7 @@ export function JettonMinter() {
       </div>
 
       {/* Bottom Bar */}
-      <div className="fixed bottom-0 left-0 w-full bg-[#0F0F11] border-t border-gray-800 p-5 z-50">
+      <div className="mt-6 bg-[#1C1C1E] border border-gray-700 rounded-xl p-5">
         <div className="flex justify-between items-center mb-3 text-sm">
           <span className="text-gray-500">Service Fee:</span>
           <span className="text-white font-extrabold text-lg">{totalPrice.toFixed(1)} TON</span>

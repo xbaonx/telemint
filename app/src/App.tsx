@@ -333,7 +333,7 @@ function App() {
                 onClick={() => setActiveTab('jetton')}
                 className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'jetton' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' : 'text-gray-400 hover:text-white'}`}
             >
-                Mint Jetton
+                Create Token
             </button>
         </div>
 
