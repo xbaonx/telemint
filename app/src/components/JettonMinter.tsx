@@ -12,7 +12,6 @@ export function JettonMinter() {
   const [tokenName, setTokenName] = useState('');
   const [tokenSymbol, setTokenSymbol] = useState('');
   const [tokenSupply, setTokenSupply] = useState('1000000000');
-  const [tokenDescription, setTokenDescription] = useState('');
   const [tokenImage, setTokenImage] = useState<File | null>(null);
   
   // Options State
@@ -48,7 +47,7 @@ export function JettonMinter() {
       
       // 1. Upload Metadata
       addLog('> Uploading metadata to IPFS...');
-      const { metadataUri } = await uploadToIPFS(tokenImage, tokenName, tokenDescription || `Token ${tokenSymbol} on TON`);
+      const { metadataUri } = await uploadToIPFS(tokenImage, tokenName, `Token ${tokenSymbol} on TON`);
       addLog(`> Metadata uploaded: ${metadataUri}`);
 
       // 2. Deploy

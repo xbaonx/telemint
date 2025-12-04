@@ -41,7 +41,7 @@ export function buildMintPayload(toAddress: string, metadataUri: string): string
 /**
  * Get full price for NFT minting
  */
-export async function getFullPriceOnChain(collection: string): Promise<bigint> {
+export async function getFullPriceOnChain(_collection: string): Promise<bigint> {
   return toNano('0.05'); // NFT Mint fee usually low + gas
 }
 
