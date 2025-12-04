@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { Check, Coins, Tag, Upload, Rocket, Sparkles } from 'lucide-react';
+import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
+import { uploadToIPFS } from '../lib/ipfs';
+import { deployJetton } from '../lib/ton';
 
 export function JettonMinter() {
-  // const userAddress = useTonAddress();
-  // const [tonConnectUI] = useTonConnectUI();
+  const userAddress = useTonAddress();
+  const [tonConnectUI] = useTonConnectUI();
   
   // Form State
   const [tokenName, setTokenName] = useState('');
   const [tokenSymbol, setTokenSymbol] = useState('');
   const [tokenSupply, setTokenSupply] = useState('1000000000');
+  const [tokenDescription, setTokenDescription] = useState('');
   const [tokenImage, setTokenImage] = useState<File | null>(null);
   
   // Options State
@@ -25,42 +29,54 @@ export function JettonMinter() {
   const basePrice = 0.3;
   const totalPrice = basePrice + (revokeOwnership ? 0.5 : 0) + (vanityAddress ? 1.0 : 0);
 
-  const handleDeploy = () => {
-    if (!tokenName || !tokenSymbol) {
-      alert("Please enter Name and Ticker!");
+  const addLog = (msg: string) => setDeployStep(prev => [...prev, msg]);
+
+  const handleDeploy = async () => {
+    if (!userAddress) {
+      alert('Please connect your wallet first!');
+      return;
+    }
+    if (!tokenName || !tokenSymbol || !tokenImage) {
+      alert("Please enter Name, Symbol and upload Logo!");
       return;
     }
 
-    setIsDeploying(true);
-    setDeployStep([]);
-    
-    const logs = [
-      `> Initiating deployment for ${tokenSymbol}...`,
-      `> Connecting to TON Mainnet...`,
-      `> Uploading metadata to IPFS...`,
-      `> Gas Fee estimation: 0.05 TON`,
-      `> Compiling Smart Contract...`,
-      `> Sending transaction to network...`,
-      `> Waiting for block confirmation...`,
-      `> Verifying contract source code...`,
-      `> Ownership status: ${revokeOwnership ? 'REVOKED' : 'ACTIVE'}`,
-      `> SUCCESS! Token Minter created.`
-    ];
+    try {
+      setIsDeploying(true);
+      setDeployStep([]);
+      addLog(`> Initiating deployment for ${tokenSymbol}...`);
+      
+      // 1. Upload Metadata
+      addLog('> Uploading metadata to IPFS...');
+      const { metadataUri } = await uploadToIPFS(tokenImage, tokenName, tokenDescription || `Token ${tokenSymbol} on TON`);
+      addLog(`> Metadata uploaded: ${metadataUri}`);
 
-    let i = 0;
-    const interval = setInterval(() => {
-      setDeployStep(prev => [...prev, logs[i]]);
-      i++;
-      if (i >= logs.length) {
-        clearInterval(interval);
-        setTimeout(() => {
+      // 2. Deploy
+      addLog('> Preparing deployment transaction...');
+      const { contractAddress } = await deployJetton(tonConnectUI, {
+          owner: userAddress,
+          name: tokenName,
+          symbol: tokenSymbol,
+          image: metadataUri, // Use metadata JSON URI here
+          totalSupply: tokenSupply,
+          totalPrice: totalPrice
+      });
+
+      setContractAddress(contractAddress);
+      addLog(`> Transaction sent! Contract: ${contractAddress}`);
+      addLog('> Waiting for block confirmation...');
+
+      // Fake wait for confirmation (real wait needs indexer)
+      setTimeout(() => {
           setIsDeploying(false);
           setShowSuccess(true);
-          const randomAddr = 'EQ' + Array(46).fill(0).map(() => Math.random().toString(36).charAt(2)).join('').toUpperCase();
-          setContractAddress(randomAddr);
-        }, 1000);
-      }
-    }, 800);
+      }, 5000);
+
+    } catch (e: any) {
+      console.error(e);
+      addLog(`> ERROR: ${e.message || 'Deployment failed'}`);
+      setTimeout(() => setIsDeploying(false), 3000);
+    }
   };
 
   const handleImageUpload = () => {
@@ -91,11 +107,16 @@ export function JettonMinter() {
             >
               {tokenImage ? (
                 <>
-                   {/* Simulated Preview (Ideally would use URL.createObjectURL) */}
                   <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/40">
                     <Check className="w-8 h-8 text-green-400 drop-shadow-lg" />
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-green-500/20 to-transparent" />
+                  {/* Preview Image */}
+                  <img 
+                    src={URL.createObjectURL(tokenImage)} 
+                    alt="Token Preview" 
+                    className="absolute inset-0 w-full h-full object-cover opacity-50" 
+                  />
                 </>
               ) : (
                 <>
@@ -254,12 +275,15 @@ export function JettonMinter() {
               {deployStep.map((step, idx) => (
                 <div key={idx} className="flex gap-2 animate-fade-in">
                   <span className="text-gray-600">{(idx + 1).toString().padStart(2, '0')}</span>
-                  <span className={step.includes('Gas Fee') ? 'text-orange-400' : step.includes('SUCCESS') ? 'text-green-400 font-bold' : 'text-blue-300'}>
+                  <span className={step.includes('ERROR') ? 'text-red-400 font-bold' : step.includes('SUCCESS') ? 'text-green-400 font-bold' : 'text-blue-300'}>
                     {step}
                   </span>
                 </div>
               ))}
               <div className="animate-pulse text-blue-500">_</div>
+            </div>
+            <div className="mt-4 flex justify-end">
+               <button onClick={() => setIsDeploying(false)} className="text-xs text-gray-500 hover:text-white underline">Close Terminal</button>
             </div>
           </div>
         </div>
