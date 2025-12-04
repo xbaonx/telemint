@@ -2,6 +2,7 @@ import './shims/buffer';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
+import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './styles/index.css';
 import { telegram } from './lib/telegram';
@@ -23,7 +24,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         twaReturnUrl: 'https://t.me/mintboxx_bot'
       }}
     >
-      <App />
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
     </TonConnectUIProvider>
   </React.StrictMode>
 );
