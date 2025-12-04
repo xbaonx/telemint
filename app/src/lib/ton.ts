@@ -8,28 +8,33 @@ import { Buffer } from 'buffer';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import type { SendTransactionResponse } from '@tonconnect/ui-react';
 import { JETTON_MINTER_CODE_BOC, JETTON_WALLET_CODE_BOC } from './jetton-contracts';
-import minterCompiledRaw from './contracts/jetton-minter.compiled.json?raw';
-import walletCompiledRaw from './contracts/jetton-wallet.compiled.json?raw';
+import minterCompiled from './contracts/jetton-minter.compiled.json';
+import walletCompiled from './contracts/jetton-wallet.compiled.json';
 
 const COLLECTION_ADDRESS = import.meta.env.VITE_TON_COLLECTION_ADDRESS;
 const MINT_PRICE_NANOTON = import.meta.env.VITE_MINT_PRICE_NANOTON || '1000000000';
 const NETWORK = (import.meta.env.VITE_NETWORK || 'mainnet').toLowerCase();
 const PLATFORM_WALLET = import.meta.env.VITE_PLATFORM_WALLET; // Wallet to receive service fees
 
+function normalizeHex(hex: string): string {
+  const h = String(hex || '').trim().replace(/^0x/i, '');
+  return h.length % 2 === 1 ? '0' + h : h;
+}
+
 // Load Jetton codes from bundled compiled JSON (fallback to local constants)
 async function loadJettonCodes(): Promise<{ minterCode: Cell; walletCode: Cell }>{
   try {
-    const minterHex: string = String(JSON.parse(minterCompiledRaw).hex || '');
-    const walletHex: string = String(JSON.parse(walletCompiledRaw).hex || '');
+    const minterHex: string = String((minterCompiled as any).hex || '');
+    const walletHex: string = String((walletCompiled as any).hex || '');
     console.log('🔎 Bundled jetton codes:', { mlen: minterHex.length, wlen: walletHex.length, mprefix: minterHex.slice(0, 8), wprefix: walletHex.slice(0, 8) });
-    const minterCode = Cell.fromBoc(Buffer.from(minterHex, 'hex'))[0];
-    const walletCode = Cell.fromBoc(Buffer.from(walletHex, 'hex'))[0];
+    const minterCode = Cell.fromBoc(Buffer.from(normalizeHex(minterHex), 'hex'))[0];
+    const walletCode = Cell.fromBoc(Buffer.from(normalizeHex(walletHex), 'hex'))[0];
     return { minterCode, walletCode };
   } catch (e) {
     console.warn('Failed to parse bundled jetton codes, fallback to local constants', e);
     return {
-      minterCode: Cell.fromBoc(Buffer.from(JETTON_MINTER_CODE_BOC, 'hex'))[0],
-      walletCode: Cell.fromBoc(Buffer.from(JETTON_WALLET_CODE_BOC, 'hex'))[0],
+      minterCode: Cell.fromBoc(Buffer.from(normalizeHex(JETTON_MINTER_CODE_BOC), 'hex'))[0],
+      walletCode: Cell.fromBoc(Buffer.from(normalizeHex(JETTON_WALLET_CODE_BOC), 'hex'))[0],
     };
   }
 }
