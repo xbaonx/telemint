@@ -3,7 +3,7 @@
  * Build mint payload and send transaction via TON Connect
  */
 
-import { Address, beginCell, toNano, Cell, contractAddress as getContractAddress, StateInit } from '@ton/core';
+import { Address, beginCell, toNano, Cell, contractAddress as getContractAddress, StateInit, storeStateInit } from '@ton/core';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import type { SendTransactionResponse } from '@tonconnect/ui-react';
 import { JETTON_MINTER_CODE_BOC, JETTON_WALLET_CODE_BOC } from './jetton-contracts';
@@ -12,6 +12,20 @@ const COLLECTION_ADDRESS = import.meta.env.VITE_TON_COLLECTION_ADDRESS;
 const MINT_PRICE_NANOTON = import.meta.env.VITE_MINT_PRICE_NANOTON || '1000000000';
 const NETWORK = (import.meta.env.VITE_NETWORK || 'mainnet').toLowerCase();
 const PLATFORM_WALLET = import.meta.env.VITE_PLATFORM_WALLET; // Wallet to receive service fees
+
+// Convert hex string (BOC in hex) to bytes for Cell.fromBoc
+function hexToBytes(hex: string): Uint8Array {
+  if (!hex) return new Uint8Array();
+  if (hex.startsWith('0x')) hex = hex.slice(2);
+  if (hex.length % 2 !== 0) throw new Error('Invalid hex string length');
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    out[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+  }
+  return out;
+}
+
+ 
 
 /**
  * Build mint message payload for NFT
@@ -125,9 +139,9 @@ export async function deployJetton(
     const totalSupply = toNano(params.totalSupply); 
     const metadataUri = params.image; // JSON URI
     
-    // 1. Load Code
-    const minterCode = Cell.fromBase64(JETTON_MINTER_CODE_BOC);
-    const walletCode = Cell.fromBase64(JETTON_WALLET_CODE_BOC);
+    // 2. Load Code (BOC provided as HEX, must decode to bytes then fromBoc)
+    const minterCode = Cell.fromBoc(hexToBytes(JETTON_MINTER_CODE_BOC))[0];
+    const walletCode = Cell.fromBoc(hexToBytes(JETTON_WALLET_CODE_BOC))[0];
 
     // 2. Build Initial Data
     const contentCell = beginCell()
@@ -148,12 +162,9 @@ export async function deployJetton(
         data: minterData
     };
     
+    // Build StateInit Cell (proper TL-B serialization)
     const stateInitCell = beginCell()
-        .storeBit(0) // split_depth
-        .storeBit(0) // special
-        .storeMaybeRef(minterCode)
-        .storeMaybeRef(minterData)
-        .storeUint(0, 1) // library
+        .store(storeStateInit(stateInit))
         .endCell();
 
     const contractAddr = getContractAddress(0, stateInit);
