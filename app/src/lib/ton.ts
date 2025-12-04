@@ -4,6 +4,7 @@
  */
 
 import { Address, beginCell, toNano, Cell, contractAddress as getContractAddress, StateInit, storeStateInit } from '@ton/core';
+import { Buffer } from 'buffer';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import type { SendTransactionResponse } from '@tonconnect/ui-react';
 import { JETTON_MINTER_CODE_BOC, JETTON_WALLET_CODE_BOC } from './jetton-contracts';
@@ -13,16 +14,11 @@ const MINT_PRICE_NANOTON = import.meta.env.VITE_MINT_PRICE_NANOTON || '100000000
 const NETWORK = (import.meta.env.VITE_NETWORK || 'mainnet').toLowerCase();
 const PLATFORM_WALLET = import.meta.env.VITE_PLATFORM_WALLET; // Wallet to receive service fees
 
-// Convert hex string (BOC in hex) to bytes for Cell.fromBoc
-function hexToBytes(hex: string): Uint8Array {
-  if (!hex) return new Uint8Array();
+// Convert hex string (BOC in hex) to Buffer for Cell.fromBoc
+function hexToBytes(hex: string): Buffer {
+  if (!hex) return Buffer.from([]);
   if (hex.startsWith('0x')) hex = hex.slice(2);
-  if (hex.length % 2 !== 0) throw new Error('Invalid hex string length');
-  const out = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    out[i / 2] = parseInt(hex.slice(i, i + 2), 16);
-  }
-  return out;
+  return Buffer.from(hex, 'hex');
 }
 
  
