@@ -8,17 +8,30 @@ import { Buffer } from 'buffer';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import type { SendTransactionResponse } from '@tonconnect/ui-react';
 import { JETTON_MINTER_CODE_BOC, JETTON_WALLET_CODE_BOC } from './jetton-contracts';
+import minterCompiledRaw from './contracts/jetton-minter.compiled.json?raw';
+import walletCompiledRaw from './contracts/jetton-wallet.compiled.json?raw';
 
 const COLLECTION_ADDRESS = import.meta.env.VITE_TON_COLLECTION_ADDRESS;
 const MINT_PRICE_NANOTON = import.meta.env.VITE_MINT_PRICE_NANOTON || '1000000000';
 const NETWORK = (import.meta.env.VITE_NETWORK || 'mainnet').toLowerCase();
 const PLATFORM_WALLET = import.meta.env.VITE_PLATFORM_WALLET; // Wallet to receive service fees
 
-// Convert hex string (BOC in hex) to Buffer for Cell.fromBoc
-function hexToBytes(hex: string): Buffer {
-  if (!hex) return Buffer.from([]);
-  if (hex.startsWith('0x')) hex = hex.slice(2);
-  return Buffer.from(hex, 'hex');
+// Load Jetton codes from bundled compiled JSON (fallback to local constants)
+async function loadJettonCodes(): Promise<{ minterCode: Cell; walletCode: Cell }>{
+  try {
+    const minterHex: string = String(JSON.parse(minterCompiledRaw).hex || '');
+    const walletHex: string = String(JSON.parse(walletCompiledRaw).hex || '');
+    console.log('🔎 Bundled jetton codes:', { mlen: minterHex.length, wlen: walletHex.length, mprefix: minterHex.slice(0, 8), wprefix: walletHex.slice(0, 8) });
+    const minterCode = Cell.fromBoc(Buffer.from(minterHex, 'hex'))[0];
+    const walletCode = Cell.fromBoc(Buffer.from(walletHex, 'hex'))[0];
+    return { minterCode, walletCode };
+  } catch (e) {
+    console.warn('Failed to parse bundled jetton codes, fallback to local constants', e);
+    return {
+      minterCode: Cell.fromBoc(Buffer.from(JETTON_MINTER_CODE_BOC, 'hex'))[0],
+      walletCode: Cell.fromBoc(Buffer.from(JETTON_WALLET_CODE_BOC, 'hex'))[0],
+    };
+  }
 }
 
  
@@ -135,9 +148,8 @@ export async function deployJetton(
     const totalSupply = toNano(params.totalSupply); 
     const metadataUri = params.image; // JSON URI
     
-    // 2. Load Code (BOC provided as HEX, must decode to bytes then fromBoc)
-    const minterCode = Cell.fromBoc(hexToBytes(JETTON_MINTER_CODE_BOC))[0];
-    const walletCode = Cell.fromBoc(hexToBytes(JETTON_WALLET_CODE_BOC))[0];
+    // 2. Load Code (prefer remote official bytes; fallback to local)
+    const { minterCode, walletCode } = await loadJettonCodes();
 
     // 2. Build Initial Data
     const contentCell = beginCell()
