@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { analytics, logEvent, saveUserToFirestore } from './lib/firebase';
-import { TonConnectButton, useTonAddress, useTonWallet } from '@tonconnect/ui-react';
+import { TonConnectButton, useTonAddress } from '@tonconnect/ui-react';
 import { Wallet } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
@@ -12,7 +12,6 @@ import { telegram } from './lib/telegram';
 
 function App() {
   const userAddress = useTonAddress();
-  const wallet = useTonWallet();
   const navigate = useNavigate();
   const location = useLocation();
 

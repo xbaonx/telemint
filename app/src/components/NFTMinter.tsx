@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { analytics, logEvent, saveUserToFirestore } from '../lib/firebase';
 import { useTonAddress, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
-import { Wallet, Shield } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import { UploadCard } from './UploadCard';
 import { MintButton } from './MintButton';
 import { SuccessSheet } from './SuccessSheet';
