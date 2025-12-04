@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Coins, Tag, Upload, Rocket, Sparkles } from 'lucide-react';
 
 export function JettonMinter() {
   // const userAddress = useTonAddress();
@@ -64,8 +64,6 @@ export function JettonMinter() {
   };
 
   const handleImageUpload = () => {
-    // Fake upload for now as per original HTML logic, or we can implement real file picker later
-    // For UI consistency with the request, we'll simulate it
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -78,145 +76,222 @@ export function JettonMinter() {
 
   return (
     <div className="text-white font-sans">
-      <div className="p-5 space-y-6">
-        {/* Token Logo */}
-        <div className="space-y-2">
-          <label className="text-xs text-gray-400 font-semibold tracking-wide uppercase">Token Logo</label>
-          <div 
-            onClick={handleImageUpload}
-            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${tokenImage ? 'border-green-500 text-green-500 bg-green-500/10' : 'border-gray-700 bg-[#1C1C1E] hover:border-blue-500'}`}
-          >
-            <div className="flex flex-col items-center gap-2">
+      {/* Main Card Container */}
+      <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl shadow-2xl space-y-8">
+        
+        {/* Top Section: Logo & Basic Info */}
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Logo Upload */}
+          <div className="shrink-0">
+            <label className="text-xs text-gray-400 font-semibold tracking-wide uppercase mb-2 block pl-1">Token Logo</label>
+            <div 
+              onClick={handleImageUpload}
+              className={`w-32 h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all group relative overflow-hidden
+                ${tokenImage ? 'border-green-500 bg-green-500/10' : 'border-white/10 bg-black/20 hover:border-blue-500 hover:bg-blue-500/5'}`}
+            >
               {tokenImage ? (
                 <>
-                  <Check className="w-8 h-8" />
-                  <span className="text-sm font-medium">{tokenImage.name} (Loaded)</span>
+                   {/* Simulated Preview (Ideally would use URL.createObjectURL) */}
+                  <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/40">
+                    <Check className="w-8 h-8 text-green-400 drop-shadow-lg" />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-green-500/20 to-transparent" />
                 </>
               ) : (
                 <>
-                  <span className="text-2xl">📸</span>
-                  <span className="text-sm text-gray-400">Tap to upload PNG/JPG</span>
+                  <Upload className="w-8 h-8 text-gray-500 mb-2 group-hover:text-blue-400 transition-colors" />
+                  <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider group-hover:text-blue-300">Upload</span>
                 </>
               )}
             </div>
           </div>
+
+          {/* Basic Fields */}
+          <div className="flex-1 space-y-5">
+            <div>
+              <label className="text-xs text-gray-400 font-semibold tracking-wide uppercase mb-2 block pl-1">Display Name</label>
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors">
+                  <Sparkles size={18} />
+                </div>
+                <input 
+                  type="text" 
+                  value={tokenName}
+                  onChange={(e) => setTokenName(e.target.value)}
+                  placeholder="e.g. Super Telegram Coin" 
+                  className="w-full bg-black/20 border border-white/10 rounded-xl py-3.5 pl-11 pr-4 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-400 font-semibold tracking-wide uppercase mb-2 block pl-1">Token Symbol</label>
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors">
+                  <Tag size={18} />
+                </div>
+                <input 
+                  type="text" 
+                  value={tokenSymbol}
+                  onChange={(e) => setTokenSymbol(e.target.value)}
+                  placeholder="e.g. $STC" 
+                  className="w-full bg-black/20 border border-white/10 rounded-xl py-3.5 pl-11 pr-4 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all uppercase font-mono"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Token Name */}
-        <div className="space-y-2">
-          <label className="text-xs text-gray-400 font-semibold tracking-wide uppercase">Token Name</label>
-          <input 
-            type="text" 
-            value={tokenName}
-            onChange={(e) => setTokenName(e.target.value)}
-            placeholder="Ex: Super Cat" 
-            className="w-full bg-[#1C1C1E] border border-gray-700 rounded-xl p-3.5 text-white focus:outline-none focus:border-blue-500 transition-colors"
-          />
+        {/* Supply Section */}
+        <div>
+          <label className="text-xs text-gray-400 font-semibold tracking-wide uppercase mb-2 block pl-1">Total Supply</label>
+          <div className="relative group">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors">
+              <Coins size={18} />
+            </div>
+            <input 
+              type="number" 
+              value={tokenSupply}
+              onChange={(e) => setTokenSupply(e.target.value)}
+              className="w-full bg-black/20 border border-white/10 rounded-xl py-3.5 pl-11 pr-4 text-white font-mono tracking-wide focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
+            />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500 bg-white/5 px-2 py-1 rounded-md border border-white/5">
+              TOKENS
+            </div>
+          </div>
         </div>
 
-        {/* Ticker */}
-        <div className="space-y-2">
-          <label className="text-xs text-gray-400 font-semibold tracking-wide uppercase">Ticker (Symbol)</label>
-          <input 
-            type="text" 
-            value={tokenSymbol}
-            onChange={(e) => setTokenSymbol(e.target.value)}
-            placeholder="Ex: $SCAT" 
-            className="w-full bg-[#1C1C1E] border border-gray-700 rounded-xl p-3.5 text-white focus:outline-none focus:border-blue-500 transition-colors"
-          />
+        {/* Advanced Options Divider */}
+        <div className="relative py-2">
+          <div className="absolute inset-0 flex items-center" aria-hidden="true">
+            <div className="w-full border-t border-white/10"></div>
+          </div>
+          <div className="relative flex justify-center">
+            <span className="px-3 bg-[#0F0F11] text-[10px] font-bold text-gray-500 uppercase tracking-widest rounded-full border border-white/10">
+              Advanced Features
+            </span>
+          </div>
         </div>
 
-        {/* Total Supply */}
-        <div className="space-y-2">
-          <label className="text-xs text-gray-400 font-semibold tracking-wide uppercase">Total Supply</label>
-          <input 
-            type="number" 
-            value={tokenSupply}
-            onChange={(e) => setTokenSupply(e.target.value)}
-            className="w-full bg-[#1C1C1E] border border-gray-700 rounded-xl p-3.5 text-white focus:outline-none focus:border-blue-500 transition-colors"
-          />
+        {/* Options Grid */}
+        <div className="grid grid-cols-1 gap-4">
+          <div className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between
+            ${revokeOwnership ? 'bg-blue-500/10 border-blue-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
+            onClick={() => setRevokeOwnership(!revokeOwnership)}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${revokeOwnership ? 'border-blue-400 bg-blue-400' : 'border-gray-600'}`}>
+                {revokeOwnership && <Check size={12} className="text-white" />}
+              </div>
+              <div>
+                <h4 className={`text-sm font-bold ${revokeOwnership ? 'text-blue-200' : 'text-gray-300'}`}>Revoke Ownership</h4>
+                <p className="text-xs text-gray-500">Renounce contract ownership (Unruggable)</p>
+              </div>
+            </div>
+            <div className="px-2 py-1 bg-white/5 rounded text-[10px] font-mono text-gray-400 border border-white/5">
+              +0.5 TON
+            </div>
+          </div>
+
+          <div className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between
+            ${vanityAddress ? 'bg-purple-500/10 border-purple-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
+            onClick={() => setVanityAddress(!vanityAddress)}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${vanityAddress ? 'border-purple-400 bg-purple-400' : 'border-gray-600'}`}>
+                {vanityAddress && <Check size={12} className="text-white" />}
+              </div>
+              <div>
+                <h4 className={`text-sm font-bold ${vanityAddress ? 'text-purple-200' : 'text-gray-300'}`}>Vanity Address</h4>
+                <p className="text-xs text-gray-500">Custom contract address suffix (e.g. ...8888)</p>
+              </div>
+            </div>
+            <div className="px-2 py-1 bg-white/5 rounded text-[10px] font-mono text-gray-400 border border-white/5">
+              +1.0 TON
+            </div>
+          </div>
         </div>
 
-        {/* Advanced Options */}
-        <div className="mt-8 space-y-4">
-          <div className="text-xs text-blue-400 font-bold tracking-wide uppercase">ADVANCED OPTIONS (RECOMMENDED)</div>
+        {/* Deploy Section */}
+        <div className="pt-4">
+          <div className="flex justify-between items-center mb-4 px-1">
+            <span className="text-gray-400 text-sm font-medium">Total Service Fee</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-bold text-white tracking-tight">{totalPrice.toFixed(1)}</span>
+              <span className="text-sm font-bold text-blue-400">TON</span>
+            </div>
+          </div>
           
-          <div className="flex items-center justify-between bg-[#1C1C1E] p-4 rounded-xl border border-gray-700">
-            <div>
-              <h4 className="text-[15px] font-medium flex items-center gap-2">
-                Revoke Ownership 
-                <span className="bg-blue-500/10 text-blue-400 text-[11px] px-1.5 py-0.5 rounded font-bold">+0.5 TON</span>
-              </h4>
-              <p className="text-xs text-gray-500 mt-1">Make token safe (Unruggable)</p>
+          <button 
+            onClick={handleDeploy}
+            disabled={isDeploying}
+            className="w-full group relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            <div className="absolute inset-0 bg-white/20 group-hover:translate-x-full transition-transform duration-500 ease-out -skew-x-12 -translate-x-full" />
+            <div className="flex items-center justify-center gap-2">
+              {isDeploying ? (
+                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                 <Rocket className="w-5 h-5 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+              )}
+              <span className="tracking-wide">{isDeploying ? 'DEPLOYING...' : 'DEPLOY JETTON'}</span>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" checked={revokeOwnership} onChange={(e) => setRevokeOwnership(e.target.checked)} />
-              <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between bg-[#1C1C1E] p-4 rounded-xl border border-gray-700">
-            <div>
-              <h4 className="text-[15px] font-medium flex items-center gap-2">
-                Vanity Address 
-                <span className="bg-blue-500/10 text-blue-400 text-[11px] px-1.5 py-0.5 rounded font-bold">+1.0 TON</span>
-              </h4>
-              <p className="text-xs text-gray-500 mt-1">Contract ends with "8888"</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" checked={vanityAddress} onChange={(e) => setVanityAddress(e.target.checked)} />
-              <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
-            </label>
-          </div>
+          </button>
         </div>
-      </div>
-
-      {/* Bottom Bar */}
-      <div className="mt-6 bg-[#1C1C1E] border border-gray-700 rounded-xl p-5">
-        <div className="flex justify-between items-center mb-3 text-sm">
-          <span className="text-gray-500">Service Fee:</span>
-          <span className="text-white font-extrabold text-lg">{totalPrice.toFixed(1)} TON</span>
-        </div>
-        <button 
-          onClick={handleDeploy}
-          className="w-full bg-blue-500 hover:bg-blue-600 active:scale-95 transition-all text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/30 text-lg"
-        >
-          🚀 DEPLOY JETTON NOW
-        </button>
       </div>
 
       {/* Terminal Overlay */}
       {isDeploying && (
-        <div className="fixed inset-0 bg-black/95 z-[100] flex flex-col justify-center p-6 font-mono text-sm">
-          <div className="space-y-2">
-            {deployStep.map((step, idx) => (
-              <div key={idx} className="text-green-400 animate-fade-in">
-                {step.includes('Gas Fee') ? <span className="text-orange-400">{step}</span> : step}
-              </div>
-            ))}
+        <div className="fixed inset-0 bg-black/90 z-[100] flex flex-col justify-center p-6 font-mono text-sm backdrop-blur-md">
+          <div className="max-w-md mx-auto w-full bg-[#0F0F11] border border-gray-800 rounded-xl p-6 shadow-2xl">
+            <div className="flex items-center gap-2 mb-4 border-b border-gray-800 pb-4">
+                <div className="w-3 h-3 rounded-full bg-red-500/50" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
+                <div className="w-3 h-3 rounded-full bg-green-500/50" />
+                <span className="ml-2 text-xs text-gray-500">deployment_terminal.sh</span>
+            </div>
+            <div className="space-y-2 font-mono text-xs md:text-sm h-64 overflow-y-auto custom-scrollbar">
+              {deployStep.map((step, idx) => (
+                <div key={idx} className="flex gap-2 animate-fade-in">
+                  <span className="text-gray-600">{(idx + 1).toString().padStart(2, '0')}</span>
+                  <span className={step.includes('Gas Fee') ? 'text-orange-400' : step.includes('SUCCESS') ? 'text-green-400 font-bold' : 'text-blue-300'}>
+                    {step}
+                  </span>
+                </div>
+              ))}
+              <div className="animate-pulse text-blue-500">_</div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Success Modal */}
       {showSuccess && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#1C1C1E] border border-gray-700 p-8 rounded-3xl text-center w-full max-w-sm shadow-2xl animate-pop-in">
-            <div className="text-5xl mb-4">🎉</div>
-            <h2 className="text-2xl font-bold text-white mb-2">Token Deployed!</h2>
-            <p className="text-gray-400 text-sm mb-6">Your token is now live on TON Blockchain.</p>
-            
-            <div className="bg-black p-3 rounded-lg border border-gray-800 mb-6 break-all font-mono text-xs text-gray-500">
-              {contractAddress}
-            </div>
-            
-            <div className="space-y-3">
-              <button onClick={() => setShowSuccess(false)} className="w-full bg-[#2C2C2E] text-white font-bold py-3 rounded-xl hover:bg-[#3a3a3c]">
-                Manage Token
-              </button>
-              <button onClick={() => window.open(`https://tonviewer.com/${contractAddress}`)} className="w-full bg-blue-500 text-white font-bold py-3 rounded-xl hover:bg-blue-600 shadow-lg shadow-blue-500/20">
-                View on TonViewer
-              </button>
+        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#1C1C1E] border border-white/10 p-8 rounded-3xl text-center w-full max-w-sm shadow-2xl animate-pop-in relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent" />
+            <div className="relative z-10">
+                <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-green-500/50">
+                    <div className="text-4xl">🎉</div>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">Token Deployed!</h2>
+                <p className="text-gray-400 text-sm mb-8 leading-relaxed">Your token <span className="text-white font-bold">{tokenSymbol}</span> is now live on the TON Blockchain.</p>
+                
+                <div className="bg-black/50 p-4 rounded-xl border border-white/5 mb-6 text-left">
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Contract Address</div>
+                    <div className="font-mono text-xs text-blue-300 break-all select-all cursor-text">
+                    {contractAddress}
+                    </div>
+                </div>
+                
+                <div className="space-y-3">
+                <button onClick={() => setShowSuccess(false)} className="w-full bg-white/5 text-white font-bold py-3.5 rounded-xl hover:bg-white/10 border border-white/5 transition-colors">
+                    Close
+                </button>
+                <button onClick={() => window.open(`https://tonviewer.com/${contractAddress}`)} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-500 shadow-lg shadow-blue-500/25 transition-all">
+                    View on TonViewer
+                </button>
+                </div>
             </div>
           </div>
         </div>
