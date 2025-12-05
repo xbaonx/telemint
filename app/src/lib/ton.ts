@@ -172,7 +172,7 @@ export async function deployJetton(
         .storeCoins(totalSupply) // Jetton Amount
         .storeAddress(ownerAddress) // from (admin)
         .storeAddress(ownerAddress) // response_address
-        .storeCoins(0) // forward_ton_amount
+        .storeCoins(toNano('0.05')) // forward_ton_amount (lower to reduce total cost)
         .storeBit(0) // forward_payload
         .endCell();
 
@@ -180,12 +180,12 @@ export async function deployJetton(
         .storeUint(21, 32) // op: mint
         .storeUint(0, 64) // query_id
         .storeAddress(ownerAddress) // to_address
-        .storeCoins(toNano('0.1')) // ton_amount
+        .storeCoins(toNano('0.05')) // ton_amount (match lower forward_ton_amount)
         .storeRef(internalTransferBody) // master_msg
         .endCell();
 
     // 5. Prepare Transaction Messages
-    const deployAmount = 0.25; // 0.25 TON fixed for deploy cost
+    const deployAmount = 0.2; // reduced deploy cost
     const messages = [];
 
     // Message 1: Deploy Contract

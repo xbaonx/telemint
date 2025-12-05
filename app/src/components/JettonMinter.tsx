@@ -47,7 +47,13 @@ export function JettonMinter() {
       
       // 1. Upload Metadata
       addLog('> Uploading metadata to IPFS...');
-      const { metadataUri } = await uploadToIPFS(tokenImage, tokenName, `Token ${tokenSymbol} on TON`);
+      const { metadataUri } = await uploadToIPFS(
+        tokenImage,
+        tokenName,
+        `Token ${tokenSymbol} on TON`,
+        tokenSymbol,
+        9
+      );
       addLog(`> Metadata uploaded: ${metadataUri}`);
 
       // 2. Deploy

@@ -14,6 +14,8 @@ export interface NFTMetadata {
   name: string;
   description?: string;
   image: string; // ipfs://CID
+  symbol?: string;
+  decimals?: string | number;
   attributes?: Array<{
     trait_type: string;
     value: string | number;
@@ -62,7 +64,9 @@ async function uploadJsonToPinata(json: any): Promise<string> {
 export async function uploadToIPFS(
   file: File,
   name: string,
-  description?: string
+  description?: string,
+  symbol?: string,
+  decimals: string | number = 9
 ): Promise<UploadResult> {
   try {
     console.log('🧪 Pinata IPFS flow start');
@@ -78,7 +82,9 @@ export async function uploadToIPFS(
     const metadata: NFTMetadata = {
       name,
       description: description || '',
-      image: imageUri, 
+      image: imageUri,
+      ...(symbol ? { symbol } : {}),
+      ...(decimals !== undefined ? { decimals } : {}),
     };
 
     // 3. Upload metadata
