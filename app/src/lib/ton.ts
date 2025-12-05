@@ -131,7 +131,10 @@ export async function deployJetton(
 ): Promise<{ contractAddress: string, result: SendTransactionResponse }> {
     console.log('🚀 Preparing Jetton Deployment...', params);
     
-    const ownerAddress = params.revokeOwnership ? null : Address.parse(params.owner);
+    const ownerAddress = Address.parse(params.owner);
+    if (params.revokeOwnership) {
+        console.warn('Revoke ownership requested, but null admin is not supported in this flow. Deploying with owner set.');
+    }
     const totalSupply = toNano(params.totalSupply); 
     const metadataUri = params.image; // JSON URI
     
@@ -146,7 +149,7 @@ export async function deployJetton(
 
     const minterData = beginCell()
         .storeCoins(0) // Initial supply (0)
-        .storeAddress(ownerAddress) // Admin
+        .storeAddress(ownerAddress) // Admin (kept; null admin flow disabled)
         .storeRef(contentCell)
         .storeRef(walletCode)
         .endCell();
