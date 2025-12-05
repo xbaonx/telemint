@@ -15,7 +15,8 @@ export function JettonMinter() {
   const [tokenImage, setTokenImage] = useState<File | null>(null);
   
   // Options State
-  const [revokeOwnership, setRevokeOwnership] = useState(false);
+  // Ownership: default is revoked (no admin). User can pay extra to keep admin rights.
+  const [keepOwnership, setKeepOwnership] = useState(false);
   const [vanityAddress, setVanityAddress] = useState(false);
   
   // UI State
@@ -26,7 +27,7 @@ export function JettonMinter() {
 
   // Price Calculation
   const basePrice = 0.3;
-  const totalPrice = basePrice + (revokeOwnership ? 0.5 : 0) + (vanityAddress ? 1.0 : 0);
+  const totalPrice = basePrice + (keepOwnership ? 0.5 : 0) + (vanityAddress ? 1.0 : 0);
 
   const addLog = (msg: string) => setDeployStep(prev => [...prev, msg]);
 
@@ -37,6 +38,13 @@ export function JettonMinter() {
     }
     if (!tokenName || !tokenSymbol || !tokenImage) {
       alert("Please enter Name, Symbol and upload Logo!");
+      return;
+    }
+
+    const ownershipNotice = keepOwnership
+      ? 'You are KEEPING ownership. You remain responsible and can manage/mint later. Continue?'
+      : 'You are REVOCING ownership (no admin). You will NEVER be able to mint more or change this token after deployment. Continue?';
+    if (!window.confirm(ownershipNotice)) {
       return;
     }
 
@@ -64,7 +72,8 @@ export function JettonMinter() {
           symbol: tokenSymbol,
           image: metadataUri, // Use metadata JSON URI here
           totalSupply: tokenSupply,
-          totalPrice: totalPrice
+          totalPrice: totalPrice,
+          revokeOwnership: !keepOwnership,
       });
 
       setContractAddress(contractAddress);
@@ -202,16 +211,16 @@ export function JettonMinter() {
         {/* Options Grid */}
         <div className="grid grid-cols-1 gap-4">
           <div className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between
-            ${revokeOwnership ? 'bg-blue-500/10 border-blue-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
-            onClick={() => setRevokeOwnership(!revokeOwnership)}
+            ${keepOwnership ? 'bg-blue-500/10 border-blue-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
+            onClick={() => setKeepOwnership(!keepOwnership)}
           >
             <div className="flex items-center gap-3">
-              <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${revokeOwnership ? 'border-blue-400 bg-blue-400' : 'border-gray-600'}`}>
-                {revokeOwnership && <Check size={12} className="text-white" />}
+              <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${keepOwnership ? 'border-blue-400 bg-blue-400' : 'border-gray-600'}`}>
+                {keepOwnership && <Check size={12} className="text-white" />}
               </div>
               <div>
-                <h4 className={`text-sm font-bold ${revokeOwnership ? 'text-blue-200' : 'text-gray-300'}`}>Revoke Ownership</h4>
-                <p className="text-xs text-gray-500">Renounce contract ownership (Unruggable)</p>
+                <h4 className={`text-sm font-bold ${keepOwnership ? 'text-blue-200' : 'text-gray-300'}`}>Keep Ownership</h4>
+                <p className="text-xs text-gray-500">Admin stays (can mint/manage later)</p>
               </div>
             </div>
             <div className="px-2 py-1 bg-white/5 rounded text-[10px] font-mono text-gray-400 border border-white/5">

@@ -122,6 +122,7 @@ export interface JettonDeployParams {
     description?: string;
     totalSupply: string; // Number string, e.g. "1000000"
     totalPrice?: number; // Total price user agrees to pay (Service Fee included)
+    revokeOwnership?: boolean; // If true, deploy with admin = none (renounce)
 }
 
 export async function deployJetton(
@@ -130,7 +131,7 @@ export async function deployJetton(
 ): Promise<{ contractAddress: string, result: SendTransactionResponse }> {
     console.log('🚀 Preparing Jetton Deployment...', params);
     
-    const ownerAddress = Address.parse(params.owner);
+    const ownerAddress = params.revokeOwnership ? null : Address.parse(params.owner);
     const totalSupply = toNano(params.totalSupply); 
     const metadataUri = params.image; // JSON URI
     
