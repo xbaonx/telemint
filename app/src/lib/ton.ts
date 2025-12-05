@@ -4,9 +4,12 @@
  */
 
 import { Address, beginCell, toNano, Cell, contractAddress as getContractAddress, StateInit, storeStateInit } from '@ton/core';
+import { Buffer } from 'buffer';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import type { SendTransactionResponse } from '@tonconnect/ui-react';
 import { JETTON_MINTER_CODE_BOC, JETTON_WALLET_CODE_BOC } from './jetton-contracts';
+import minterCompiled from './contracts/jetton-minter.compiled.json';
+import walletCompiled from './contracts/jetton-wallet.compiled.json';
 
 const COLLECTION_ADDRESS = import.meta.env.VITE_TON_COLLECTION_ADDRESS;
 const MINT_PRICE_NANOTON = import.meta.env.VITE_MINT_PRICE_NANOTON || '1000000000';
@@ -15,10 +18,20 @@ const PLATFORM_WALLET = import.meta.env.VITE_PLATFORM_WALLET; // Wallet to recei
 
 // Load Jetton codes from bundled Base64 constants
 async function loadJettonCodes(): Promise<{ minterCode: Cell; walletCode: Cell }>{
-  const minterCode = Cell.fromBase64(JETTON_MINTER_CODE_BOC);
-  const walletCode = Cell.fromBase64(JETTON_WALLET_CODE_BOC);
-  console.log('🔎 Bundled jetton codes (base64)');
-  return { minterCode, walletCode };
+  try {
+    const minterCode = Cell.fromBase64(JETTON_MINTER_CODE_BOC);
+    const walletCode = Cell.fromBase64(JETTON_WALLET_CODE_BOC);
+    console.log('🔎 Bundled jetton codes (base64)');
+    return { minterCode, walletCode };
+  } catch (e) {
+    console.warn('Base64 parse failed, fallback to compiled hex', e);
+    const mHex = (minterCompiled as any).hex || '';
+    const wHex = (walletCompiled as any).hex || '';
+    const minterCode = Cell.fromBoc(Buffer.from(mHex, 'hex'))[0];
+    const walletCode = Cell.fromBoc(Buffer.from(wHex, 'hex'))[0];
+    console.log('✅ Parsed jetton codes from compiled hex');
+    return { minterCode, walletCode };
+  }
 }
 
  
