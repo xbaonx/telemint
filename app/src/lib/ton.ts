@@ -19,17 +19,17 @@ const PLATFORM_WALLET = import.meta.env.VITE_PLATFORM_WALLET; // Wallet to recei
 // Load Jetton codes from bundled Base64 constants
 async function loadJettonCodes(): Promise<{ minterCode: Cell; walletCode: Cell }>{
   try {
-    const minterCode = Cell.fromBase64(JETTON_MINTER_CODE_BOC);
-    const walletCode = Cell.fromBase64(JETTON_WALLET_CODE_BOC);
-    console.log('🔎 Bundled jetton codes (base64)');
-    return { minterCode, walletCode };
-  } catch (e) {
-    console.warn('Base64 parse failed, fallback to compiled hex', e);
-    const mHex = (minterCompiled as any).hex || '';
-    const wHex = (walletCompiled as any).hex || '';
+    const mHex: string = String((minterCompiled as any).hex || '');
+    const wHex: string = String((walletCompiled as any).hex || '');
     const minterCode = Cell.fromBoc(Buffer.from(mHex, 'hex'))[0];
     const walletCode = Cell.fromBoc(Buffer.from(wHex, 'hex'))[0];
-    console.log('✅ Parsed jetton codes from compiled hex');
+    console.log('🔎 Parsed jetton codes from compiled hex', { mlen: mHex.length, wlen: wHex.length });
+    return { minterCode, walletCode };
+  } catch (e) {
+    console.warn('Hex parse failed, fallback to base64 constants', e);
+    const minterCode = Cell.fromBase64(JETTON_MINTER_CODE_BOC);
+    const walletCode = Cell.fromBase64(JETTON_WALLET_CODE_BOC);
+    console.log('✅ Parsed jetton codes from base64 constants');
     return { minterCode, walletCode };
   }
 }
