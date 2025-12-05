@@ -13,6 +13,8 @@ const MINT_PRICE_NANOTON = import.meta.env.VITE_MINT_PRICE_NANOTON || '100000000
 const NETWORK = (import.meta.env.VITE_NETWORK || 'mainnet').toLowerCase();
 const PLATFORM_WALLET = import.meta.env.VITE_PLATFORM_WALLET; // Wallet to receive service fees
 
+const ZERO_ADDRESS = Address.parse('0:0000000000000000000000000000000000000000000000000000000000000000');
+
 // Load Jetton codes from bundled Base64 constants only (avoid hex/CRC issues)
 async function loadJettonCodes(): Promise<{ minterCode: Cell; walletCode: Cell }>{
   const minterCode = Cell.fromBase64(JETTON_MINTER_CODE_BOC);
@@ -131,10 +133,7 @@ export async function deployJetton(
 ): Promise<{ contractAddress: string, result: SendTransactionResponse }> {
     console.log('🚀 Preparing Jetton Deployment...', params);
     
-    const ownerAddress = Address.parse(params.owner);
-    if (params.revokeOwnership) {
-        console.warn('Revoke ownership requested, but null admin is not supported in this flow. Deploying with owner set.');
-    }
+    const ownerAddress = params.revokeOwnership ? ZERO_ADDRESS : Address.parse(params.owner);
     const totalSupply = toNano(params.totalSupply); 
     const metadataUri = params.image; // JSON URI
     
