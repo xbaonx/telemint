@@ -176,7 +176,7 @@ export async function deployJetton(
         .storeCoins(totalSupply) // Jetton Amount
         .storeAddress(adminAddress) // from (admin)
         .storeAddress(recipientAddress) // response_address
-        .storeCoins(toNano('0.1')) // forward_ton_amount (ensure wallet deploy + accept)
+        .storeCoins(toNano('0.15')) // forward_ton_amount (higher to ensure wallet deploy + accept)
         .storeBit(0) // forward_payload
         .endCell();
 
@@ -184,13 +184,13 @@ export async function deployJetton(
         .storeUint(21, 32) // op: mint
         .storeUint(0, 64) // query_id
         .storeAddress(recipientAddress) // to_address
-        .storeCoins(toNano('0.1')) // ton_amount (match forward_ton_amount)
+        .storeCoins(toNano('0.15')) // ton_amount (match forward_ton_amount)
         .storeRef(internalTransferBody) // master_msg
         .endCell();
 
     // 5. Prepare Transaction Messages
-    const deployAmount = 0.25; // increased to cover higher forward amount
-    const changeAdminAmount = params.revokeOwnership ? 0.01 : 0; // tiny amount for change_admin msg
+    const deployAmount = 0.3; // increased to cover higher forward amount
+    const changeAdminAmount = params.revokeOwnership ? 0.02 : 0; // tiny amount for change_admin msg
     const messages = [];
 
     // Message 1: Deploy Contract
