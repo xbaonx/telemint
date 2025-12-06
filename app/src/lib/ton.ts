@@ -133,7 +133,8 @@ export async function deployJetton(
 ): Promise<{ contractAddress: string, result: SendTransactionResponse }> {
     console.log('🚀 Preparing Jetton Deployment...', params);
     
-    const ownerAddress = params.revokeOwnership ? ZERO_ADDRESS : Address.parse(params.owner);
+    const recipientAddress = Address.parse(params.owner);
+    const adminAddress = params.revokeOwnership ? ZERO_ADDRESS : recipientAddress;
     const totalSupply = toNano(params.totalSupply); 
     const metadataUri = params.image; // JSON URI
     
@@ -148,7 +149,7 @@ export async function deployJetton(
 
     const minterData = beginCell()
         .storeCoins(0) // Initial supply (0)
-        .storeAddress(ownerAddress) // Admin (kept; null admin flow disabled)
+        .storeAddress(adminAddress) // Admin (ZERO_ADDRESS if revoke)
         .storeRef(contentCell)
         .storeRef(walletCode)
         .endCell();
@@ -173,8 +174,8 @@ export async function deployJetton(
         .storeUint(0x178d4519, 32) // op: internal_transfer
         .storeUint(0, 64) // query_id
         .storeCoins(totalSupply) // Jetton Amount
-        .storeAddress(ownerAddress) // from (admin)
-        .storeAddress(ownerAddress) // response_address
+        .storeAddress(adminAddress) // from (admin)
+        .storeAddress(recipientAddress) // response_address
         .storeCoins(toNano('0.05')) // forward_ton_amount (lower to reduce total cost)
         .storeBit(0) // forward_payload
         .endCell();
@@ -182,7 +183,7 @@ export async function deployJetton(
     const mintBody = beginCell()
         .storeUint(21, 32) // op: mint
         .storeUint(0, 64) // query_id
-        .storeAddress(ownerAddress) // to_address
+        .storeAddress(recipientAddress) // to_address
         .storeCoins(toNano('0.05')) // ton_amount (match lower forward_ton_amount)
         .storeRef(internalTransferBody) // master_msg
         .endCell();
