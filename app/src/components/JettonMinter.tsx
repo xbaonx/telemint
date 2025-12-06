@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Coins, Tag, Upload, Rocket, Sparkles } from 'lucide-react';
+import { Coins, Tag, Upload, Rocket, Sparkles, Check } from 'lucide-react';
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { uploadToIPFS } from '../lib/ipfs';
 import { deployJetton } from '../lib/ton';
@@ -14,10 +14,6 @@ export function JettonMinter() {
   const [tokenSupply, setTokenSupply] = useState('1000000000');
   const [tokenImage, setTokenImage] = useState<File | null>(null);
   
-  // Options State
-  const [revokeOwnership, setRevokeOwnership] = useState(false);
-  const [vanityAddress, setVanityAddress] = useState(false);
-  
   // UI State
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployStep, setDeployStep] = useState<string[]>([]);
@@ -26,7 +22,7 @@ export function JettonMinter() {
 
   // Price Calculation
   const basePrice = 1.25; // 0.25 deploy + 1 TON service fee to admin
-  const totalPrice = basePrice + (revokeOwnership ? 0.5 : 0) + (vanityAddress ? 1.0 : 0);
+  const totalPrice = basePrice;
 
   const addLog = (msg: string) => setDeployStep(prev => [...prev, msg]);
 
@@ -183,57 +179,6 @@ export function JettonMinter() {
             />
             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500 bg-white/5 px-2 py-1 rounded-md border border-white/5">
               TOKENS
-            </div>
-          </div>
-        </div>
-
-        {/* Advanced Options Divider */}
-        <div className="relative py-2">
-          <div className="absolute inset-0 flex items-center" aria-hidden="true">
-            <div className="w-full border-t border-white/10"></div>
-          </div>
-          <div className="relative flex justify-center">
-            <span className="px-3 bg-[#0F0F11] text-[10px] font-bold text-gray-500 uppercase tracking-widest rounded-full border border-white/10">
-              Advanced Features
-            </span>
-          </div>
-        </div>
-
-        {/* Options Grid */}
-        <div className="grid grid-cols-1 gap-4">
-          <div className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between
-            ${revokeOwnership ? 'bg-blue-500/10 border-blue-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
-            onClick={() => setRevokeOwnership(!revokeOwnership)}
-          >
-            <div className="flex items-center gap-3">
-              <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${revokeOwnership ? 'border-blue-400 bg-blue-400' : 'border-gray-600'}`}>
-                {revokeOwnership && <Check size={12} className="text-white" />}
-              </div>
-              <div>
-                <h4 className={`text-sm font-bold ${revokeOwnership ? 'text-blue-200' : 'text-gray-300'}`}>Revoke Ownership</h4>
-                <p className="text-xs text-gray-500">Renounce contract ownership (Unruggable)</p>
-              </div>
-            </div>
-            <div className="px-2 py-1 bg-white/5 rounded text-[10px] font-mono text-gray-400 border border-white/5">
-              +0.5 TON
-            </div>
-          </div>
-
-          <div className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between
-            ${vanityAddress ? 'bg-purple-500/10 border-purple-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
-            onClick={() => setVanityAddress(!vanityAddress)}
-          >
-            <div className="flex items-center gap-3">
-              <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${vanityAddress ? 'border-purple-400 bg-purple-400' : 'border-gray-600'}`}>
-                {vanityAddress && <Check size={12} className="text-white" />}
-              </div>
-              <div>
-                <h4 className={`text-sm font-bold ${vanityAddress ? 'text-purple-200' : 'text-gray-300'}`}>Vanity Address</h4>
-                <p className="text-xs text-gray-500">Custom contract address suffix (e.g. ...8888)</p>
-              </div>
-            </div>
-            <div className="px-2 py-1 bg-white/5 rounded text-[10px] font-mono text-gray-400 border border-white/5">
-              +1.0 TON
             </div>
           </div>
         </div>
