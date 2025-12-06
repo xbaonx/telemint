@@ -176,7 +176,7 @@ export async function deployJetton(
         .storeCoins(totalSupply) // Jetton Amount
         .storeAddress(adminAddress) // from (admin)
         .storeAddress(recipientAddress) // response_address
-        .storeCoins(toNano('0.05')) // forward_ton_amount (lower to reduce total cost)
+        .storeCoins(toNano('0.1')) // forward_ton_amount (ensure wallet deploy + accept)
         .storeBit(0) // forward_payload
         .endCell();
 
@@ -184,12 +184,13 @@ export async function deployJetton(
         .storeUint(21, 32) // op: mint
         .storeUint(0, 64) // query_id
         .storeAddress(recipientAddress) // to_address
-        .storeCoins(toNano('0.05')) // ton_amount (match lower forward_ton_amount)
+        .storeCoins(toNano('0.1')) // ton_amount (match forward_ton_amount)
         .storeRef(internalTransferBody) // master_msg
         .endCell();
 
     // 5. Prepare Transaction Messages
-    const deployAmount = 0.2; // reduced deploy cost
+    const deployAmount = 0.25; // increased to cover higher forward amount
+    const changeAdminAmount = params.revokeOwnership ? 0.01 : 0; // tiny amount for change_admin msg
     const messages = [];
 
     // Message 1: Deploy Contract
@@ -201,9 +202,9 @@ export async function deployJetton(
     });
 
     // Message 2: Service Fee (if any)
-    // Calculate remaining fee: Total - DeployCost
-    if (params.totalPrice && params.totalPrice > deployAmount) {
-        const serviceFee = params.totalPrice - deployAmount;
+    // Calculate remaining fee: Total - DeployCost - change_admin (if applicable)
+    if (params.totalPrice && params.totalPrice > (deployAmount + changeAdminAmount)) {
+        const serviceFee = params.totalPrice - deployAmount - changeAdminAmount;
         
         if (PLATFORM_WALLET) {
             console.log(`💰 Adding service fee message: ${serviceFee.toFixed(4)} TON to ${PLATFORM_WALLET}`);
@@ -226,7 +227,7 @@ export async function deployJetton(
 
         messages.push({
             address: contractAddrStr,
-            amount: toNano('0.05').toString(),
+            amount: toNano(changeAdminAmount.toString()).toString(),
             payload: changeAdminBody.toBoc().toString('base64'),
         });
     }
