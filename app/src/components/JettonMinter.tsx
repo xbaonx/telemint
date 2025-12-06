@@ -21,7 +21,7 @@ export function JettonMinter() {
   const [contractAddress, setContractAddress] = useState('');
 
   // Price Calculation
-  const basePrice = 1.25; // 0.25 deploy + 1 TON service fee to admin
+  const basePrice = 0.99; // 0.25 deploy + 0.74 TON service fee to admin
   const totalPrice = basePrice;
 
   const addLog = (msg: string) => setDeployStep(prev => [...prev, msg]);

@@ -186,7 +186,7 @@ export async function deployJetton(
 
     // 5. Prepare Transaction Messages
     const deployAmount = 0.25; // 0.25 TON fixed for deploy cost
-    const minServiceFeeTon = 1; // ensure admin receives at least 1 TON
+    const minServiceFeeTon = 0.5; // ensure admin receives at least 0.5 TON
     const messages = [];
 
     // Message 1: Deploy Contract
