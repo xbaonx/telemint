@@ -134,7 +134,7 @@ export async function deployJetton(
     console.log('🚀 Preparing Jetton Deployment...', params);
     
     const recipientAddress = Address.parse(params.owner);
-    const adminAddress = params.revokeOwnership ? ZERO_ADDRESS : recipientAddress;
+    const adminAddress = recipientAddress; // keep admin for mint; revoke handled via change_admin after deploy
     const totalSupply = toNano(params.totalSupply); 
     const metadataUri = params.image; // JSON URI
     
@@ -214,6 +214,21 @@ export async function deployJetton(
         } else {
             console.warn('⚠️ VITE_PLATFORM_WALLET not set! Skipping service fee collection.');
         }
+    }
+
+    // Message 3: Revoke ownership after deploy (change_admin to ZERO_ADDRESS)
+    if (params.revokeOwnership) {
+        const changeAdminBody = beginCell()
+            .storeUint(3, 32) // op: change_admin
+            .storeUint(0, 64) // query_id
+            .storeAddress(ZERO_ADDRESS)
+            .endCell();
+
+        messages.push({
+            address: contractAddrStr,
+            amount: toNano('0.05').toString(),
+            payload: changeAdminBody.toBoc().toString('base64'),
+        });
     }
 
     // 6. Send Transaction
