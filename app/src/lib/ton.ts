@@ -186,6 +186,7 @@ export async function deployJetton(
 
     // 5. Prepare Transaction Messages
     const deployAmount = 0.25; // 0.25 TON fixed for deploy cost
+    const minServiceFeeTon = 1; // ensure admin receives at least 1 TON
     const messages = [];
 
     // Message 1: Deploy Contract
@@ -198,18 +199,19 @@ export async function deployJetton(
 
     // Message 2: Service Fee (if any)
     // Calculate remaining fee: Total - DeployCost
-    if (params.totalPrice && params.totalPrice > deployAmount) {
-        const serviceFee = params.totalPrice - deployAmount;
-        
-        if (PLATFORM_WALLET) {
-            console.log(`💰 Adding service fee message: ${serviceFee.toFixed(4)} TON to ${PLATFORM_WALLET}`);
-            messages.push({
-                address: PLATFORM_WALLET,
-                amount: toNano(serviceFee.toFixed(4)).toString(),
-            });
-        } else {
-            console.warn('⚠️ VITE_PLATFORM_WALLET not set! Skipping service fee collection.');
-        }
+    const rawServiceFeeTon = params.totalPrice !== undefined
+        ? params.totalPrice - deployAmount
+        : minServiceFeeTon;
+    const serviceFeeTon = Math.max(rawServiceFeeTon, minServiceFeeTon);
+    
+    if (PLATFORM_WALLET) {
+        console.log(`💰 Adding service fee message: ${serviceFeeTon.toFixed(4)} TON to ${PLATFORM_WALLET}`);
+        messages.push({
+            address: PLATFORM_WALLET,
+            amount: toNano(serviceFeeTon.toFixed(4)).toString(),
+        });
+    } else {
+        console.warn('⚠️ VITE_PLATFORM_WALLET not set! Skipping service fee collection.');
     }
 
     // 6. Send Transaction

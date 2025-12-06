@@ -25,7 +25,7 @@ export function JettonMinter() {
   const [contractAddress, setContractAddress] = useState('');
 
   // Price Calculation
-  const basePrice = 0.3;
+  const basePrice = 1.25; // 0.25 deploy + 1 TON service fee to admin
   const totalPrice = basePrice + (revokeOwnership ? 0.5 : 0) + (vanityAddress ? 1.0 : 0);
 
   const addLog = (msg: string) => setDeployStep(prev => [...prev, msg]);
@@ -47,7 +47,13 @@ export function JettonMinter() {
       
       // 1. Upload Metadata
       addLog('> Uploading metadata to IPFS...');
-      const { metadataUri } = await uploadToIPFS(tokenImage, tokenName, `Token ${tokenSymbol} on TON`);
+      const { metadataUri } = await uploadToIPFS(
+        tokenImage,
+        tokenName,
+        `Token ${tokenSymbol} on TON`,
+        tokenSymbol,
+        9
+      );
       addLog(`> Metadata uploaded: ${metadataUri}`);
 
       // 2. Deploy
