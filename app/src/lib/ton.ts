@@ -13,8 +13,6 @@ const MINT_PRICE_NANOTON = import.meta.env.VITE_MINT_PRICE_NANOTON || '100000000
 const NETWORK = (import.meta.env.VITE_NETWORK || 'mainnet').toLowerCase();
 const PLATFORM_WALLET = import.meta.env.VITE_PLATFORM_WALLET; // Wallet to receive service fees
 
-const ZERO_ADDRESS = Address.parse('0:0000000000000000000000000000000000000000000000000000000000000000');
-
 // Load Jetton codes from bundled Base64 constants only (avoid hex/CRC issues)
 async function loadJettonCodes(): Promise<{ minterCode: Cell; walletCode: Cell }>{
   const minterCode = Cell.fromBase64(JETTON_MINTER_CODE_BOC);
@@ -134,7 +132,7 @@ export async function deployJetton(
     console.log('🚀 Preparing Jetton Deployment...', params);
     
     const recipientAddress = Address.parse(params.owner);
-    const adminAddress = recipientAddress; // keep admin for mint; revoke handled via change_admin after deploy
+    const adminAddress = recipientAddress; // admin stays with user; toggle only adds fee
     const totalSupply = toNano(params.totalSupply); 
     const metadataUri = params.image; // JSON URI
     
@@ -149,7 +147,7 @@ export async function deployJetton(
 
     const minterData = beginCell()
         .storeCoins(0) // Initial supply (0)
-        .storeAddress(adminAddress) // Admin (ZERO_ADDRESS if revoke)
+        .storeAddress(adminAddress) // Admin
         .storeRef(contentCell)
         .storeRef(walletCode)
         .endCell();
@@ -176,7 +174,7 @@ export async function deployJetton(
         .storeCoins(totalSupply) // Jetton Amount
         .storeAddress(adminAddress) // from (admin)
         .storeAddress(recipientAddress) // response_address
-        .storeCoins(toNano('0.15')) // forward_ton_amount (higher to ensure wallet deploy + accept)
+        .storeCoins(toNano('0.12')) // forward_ton_amount (ensure wallet deploy + accept)
         .storeBit(0) // forward_payload
         .endCell();
 
@@ -184,13 +182,12 @@ export async function deployJetton(
         .storeUint(21, 32) // op: mint
         .storeUint(0, 64) // query_id
         .storeAddress(recipientAddress) // to_address
-        .storeCoins(toNano('0.15')) // ton_amount (match forward_ton_amount)
+        .storeCoins(toNano('0.12')) // ton_amount (match forward_ton_amount)
         .storeRef(internalTransferBody) // master_msg
         .endCell();
 
     // 5. Prepare Transaction Messages
-    const deployAmount = 0.3; // increased to cover higher forward amount
-    const changeAdminAmount = params.revokeOwnership ? 0.02 : 0; // tiny amount for change_admin msg
+    const deployAmount = 0.25; // cover forward + mint
     const messages = [];
 
     // Message 1: Deploy Contract
@@ -202,9 +199,9 @@ export async function deployJetton(
     });
 
     // Message 2: Service Fee (if any)
-    // Calculate remaining fee: Total - DeployCost - change_admin (if applicable)
-    if (params.totalPrice && params.totalPrice > (deployAmount + changeAdminAmount)) {
-        const serviceFee = params.totalPrice - deployAmount - changeAdminAmount;
+    // Calculate remaining fee: Total - DeployCost
+    if (params.totalPrice && params.totalPrice > deployAmount) {
+        const serviceFee = params.totalPrice - deployAmount;
         
         if (PLATFORM_WALLET) {
             console.log(`💰 Adding service fee message: ${serviceFee.toFixed(4)} TON to ${PLATFORM_WALLET}`);
@@ -215,21 +212,6 @@ export async function deployJetton(
         } else {
             console.warn('⚠️ VITE_PLATFORM_WALLET not set! Skipping service fee collection.');
         }
-    }
-
-    // Message 3: Revoke ownership after deploy (change_admin to ZERO_ADDRESS)
-    if (params.revokeOwnership) {
-        const changeAdminBody = beginCell()
-            .storeUint(3, 32) // op: change_admin
-            .storeUint(0, 64) // query_id
-            .storeAddress(ZERO_ADDRESS)
-            .endCell();
-
-        messages.push({
-            address: contractAddrStr,
-            amount: toNano(changeAdminAmount.toString()).toString(),
-            payload: changeAdminBody.toBoc().toString('base64'),
-        });
     }
 
     // 6. Send Transaction
