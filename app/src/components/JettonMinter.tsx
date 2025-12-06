@@ -25,7 +25,8 @@ export function JettonMinter() {
   const [contractAddress, setContractAddress] = useState('');
 
   // Price Calculation
-  const basePrice = 0.3;
+  // Base service price (TON) shown to user; must cover deployAmount (0.35) + fee margin
+  const basePrice = 0.45;
   const totalPrice = basePrice + (keepOwnership ? 0.5 : 0);
 
   const addLog = (msg: string) => setDeployStep(prev => [...prev, msg]);
