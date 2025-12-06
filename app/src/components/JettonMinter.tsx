@@ -188,7 +188,7 @@ export function JettonMinter() {
           <div className="flex justify-between items-center mb-4 px-1">
             <span className="text-gray-400 text-sm font-medium">Total Service Fee</span>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-white tracking-tight">{totalPrice.toFixed(1)}</span>
+              <span className="text-2xl font-bold text-white tracking-tight">{totalPrice.toFixed(2)}</span>
               <span className="text-sm font-bold text-blue-400">TON</span>
             </div>
           </div>
