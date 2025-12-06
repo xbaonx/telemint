@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Coins, Tag, Upload, Rocket, Sparkles, Check } from 'lucide-react';
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { uploadToIPFS } from '../lib/ipfs';
@@ -19,6 +19,23 @@ export function JettonMinter() {
   const [deployStep, setDeployStep] = useState<string[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
   const [contractAddress, setContractAddress] = useState('');
+  const [tonPrice, setTonPrice] = useState<number>(0);
+
+  // Fetch TON Price
+  useEffect(() => {
+    const fetchPrice = async () => {
+      try {
+        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd');
+        const data = await res.json();
+        if (data['the-open-network']?.usd) {
+          setTonPrice(data['the-open-network'].usd);
+        }
+      } catch (e) {
+        console.warn('Failed to fetch TON price');
+      }
+    };
+    fetchPrice();
+  }, []);
 
   // Price Calculation
   const basePrice = 0.99; // 0.25 deploy + 0.74 TON service fee to admin
@@ -187,9 +204,14 @@ export function JettonMinter() {
         <div className="pt-4">
           <div className="flex justify-between items-center mb-4 px-1">
             <span className="text-gray-400 text-sm font-medium">Total Service Fee</span>
-            <div className="flex items-baseline gap-1">
+            <div className="flex items-baseline gap-2">
               <span className="text-2xl font-bold text-white tracking-tight">{totalPrice.toFixed(2)}</span>
               <span className="text-sm font-bold text-blue-400">TON</span>
+              {tonPrice > 0 && (
+                <span className="text-sm text-gray-500 font-medium">
+                  (~${(totalPrice * tonPrice).toFixed(2)})
+                </span>
+              )}
             </div>
           </div>
           
