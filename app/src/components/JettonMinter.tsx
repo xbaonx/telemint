@@ -15,8 +15,8 @@ export function JettonMinter() {
   const [tokenImage, setTokenImage] = useState<File | null>(null);
   
   // Options State
-  // Ownership: default is revoked (no admin). User can pay extra to keep admin rights.
-  const [keepOwnership, setKeepOwnership] = useState(false);
+  const [revokeOwnership, setRevokeOwnership] = useState(false);
+  const [vanityAddress, setVanityAddress] = useState(false);
   
   // UI State
   const [isDeploying, setIsDeploying] = useState(false);
@@ -25,9 +25,8 @@ export function JettonMinter() {
   const [contractAddress, setContractAddress] = useState('');
 
   // Price Calculation
-  // Base service price (TON) shown to user; must cover deployAmount (0.35) + fee margin
-  const basePrice = 0.45;
-  const totalPrice = basePrice + (keepOwnership ? 0.5 : 0);
+  const basePrice = 0.3;
+  const totalPrice = basePrice + (revokeOwnership ? 0.5 : 0) + (vanityAddress ? 1.0 : 0);
 
   const addLog = (msg: string) => setDeployStep(prev => [...prev, msg]);
 
@@ -41,13 +40,6 @@ export function JettonMinter() {
       return;
     }
 
-    const ownershipNotice = keepOwnership
-      ? 'You are KEEPING ownership. You remain responsible and can manage/mint later. Continue?'
-      : 'You are REVOCING ownership (no admin). You will NEVER be able to mint more or change this token after deployment. Continue?';
-    if (!window.confirm(ownershipNotice)) {
-      return;
-    }
-
     try {
       setIsDeploying(true);
       setDeployStep([]);
@@ -55,13 +47,7 @@ export function JettonMinter() {
       
       // 1. Upload Metadata
       addLog('> Uploading metadata to IPFS...');
-      const { metadataUri } = await uploadToIPFS(
-        tokenImage,
-        tokenName,
-        `Token ${tokenSymbol} on TON`,
-        tokenSymbol,
-        9
-      );
+      const { metadataUri } = await uploadToIPFS(tokenImage, tokenName, `Token ${tokenSymbol} on TON`);
       addLog(`> Metadata uploaded: ${metadataUri}`);
 
       // 2. Deploy
@@ -72,8 +58,7 @@ export function JettonMinter() {
           symbol: tokenSymbol,
           image: metadataUri, // Use metadata JSON URI here
           totalSupply: tokenSupply,
-          totalPrice: totalPrice,
-          revokeOwnership: !keepOwnership,
+          totalPrice: totalPrice
       });
 
       setContractAddress(contractAddress);
@@ -211,20 +196,38 @@ export function JettonMinter() {
         {/* Options Grid */}
         <div className="grid grid-cols-1 gap-4">
           <div className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between
-            ${keepOwnership ? 'bg-blue-500/10 border-blue-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
-            onClick={() => setKeepOwnership(!keepOwnership)}
+            ${revokeOwnership ? 'bg-blue-500/10 border-blue-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
+            onClick={() => setRevokeOwnership(!revokeOwnership)}
           >
             <div className="flex items-center gap-3">
-              <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${keepOwnership ? 'border-blue-400 bg-blue-400' : 'border-gray-600'}`}>
-                {keepOwnership && <Check size={12} className="text-white" />}
+              <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${revokeOwnership ? 'border-blue-400 bg-blue-400' : 'border-gray-600'}`}>
+                {revokeOwnership && <Check size={12} className="text-white" />}
               </div>
               <div>
-                <h4 className={`text-sm font-bold ${keepOwnership ? 'text-blue-200' : 'text-gray-300'}`}>Keep Ownership</h4>
-                <p className="text-xs text-gray-500">Admin stays (can mint/manage later)</p>
+                <h4 className={`text-sm font-bold ${revokeOwnership ? 'text-blue-200' : 'text-gray-300'}`}>Revoke Ownership</h4>
+                <p className="text-xs text-gray-500">Renounce contract ownership (Unruggable)</p>
               </div>
             </div>
             <div className="px-2 py-1 bg-white/5 rounded text-[10px] font-mono text-gray-400 border border-white/5">
               +0.5 TON
+            </div>
+          </div>
+
+          <div className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between
+            ${vanityAddress ? 'bg-purple-500/10 border-purple-500/50' : 'bg-white/5 border-white/5 hover:border-white/20'}`}
+            onClick={() => setVanityAddress(!vanityAddress)}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${vanityAddress ? 'border-purple-400 bg-purple-400' : 'border-gray-600'}`}>
+                {vanityAddress && <Check size={12} className="text-white" />}
+              </div>
+              <div>
+                <h4 className={`text-sm font-bold ${vanityAddress ? 'text-purple-200' : 'text-gray-300'}`}>Vanity Address</h4>
+                <p className="text-xs text-gray-500">Custom contract address suffix (e.g. ...8888)</p>
+              </div>
+            </div>
+            <div className="px-2 py-1 bg-white/5 rounded text-[10px] font-mono text-gray-400 border border-white/5">
+              +1.0 TON
             </div>
           </div>
         </div>

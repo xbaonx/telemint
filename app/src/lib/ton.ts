@@ -122,7 +122,6 @@ export interface JettonDeployParams {
     description?: string;
     totalSupply: string; // Number string, e.g. "1000000"
     totalPrice?: number; // Total price user agrees to pay (Service Fee included)
-    revokeOwnership?: boolean; // If true, deploy with admin = none (renounce)
 }
 
 export async function deployJetton(
@@ -131,8 +130,7 @@ export async function deployJetton(
 ): Promise<{ contractAddress: string, result: SendTransactionResponse }> {
     console.log('🚀 Preparing Jetton Deployment...', params);
     
-    const recipientAddress = Address.parse(params.owner);
-    const adminAddress = recipientAddress; // admin stays with user; toggle only adds fee
+    const ownerAddress = Address.parse(params.owner);
     const totalSupply = toNano(params.totalSupply); 
     const metadataUri = params.image; // JSON URI
     
@@ -147,7 +145,7 @@ export async function deployJetton(
 
     const minterData = beginCell()
         .storeCoins(0) // Initial supply (0)
-        .storeAddress(adminAddress) // Admin
+        .storeAddress(ownerAddress) // Admin
         .storeRef(contentCell)
         .storeRef(walletCode)
         .endCell();
@@ -172,22 +170,22 @@ export async function deployJetton(
         .storeUint(0x178d4519, 32) // op: internal_transfer
         .storeUint(0, 64) // query_id
         .storeCoins(totalSupply) // Jetton Amount
-        .storeAddress(adminAddress) // from (admin)
-        .storeAddress(recipientAddress) // response_address
-        .storeCoins(toNano('0.2')) // forward_ton_amount (higher to ensure wallet deploy + accept)
+        .storeAddress(ownerAddress) // from (admin)
+        .storeAddress(ownerAddress) // response_address
+        .storeCoins(0) // forward_ton_amount
         .storeBit(0) // forward_payload
         .endCell();
 
     const mintBody = beginCell()
         .storeUint(21, 32) // op: mint
         .storeUint(0, 64) // query_id
-        .storeAddress(recipientAddress) // to_address
-        .storeCoins(toNano('0.2')) // ton_amount (match forward_ton_amount)
+        .storeAddress(ownerAddress) // to_address
+        .storeCoins(toNano('0.1')) // ton_amount
         .storeRef(internalTransferBody) // master_msg
         .endCell();
 
     // 5. Prepare Transaction Messages
-    const deployAmount = 0.35; // cover higher forward + mint
+    const deployAmount = 0.25; // 0.25 TON fixed for deploy cost
     const messages = [];
 
     // Message 1: Deploy Contract
@@ -219,14 +217,6 @@ export async function deployJetton(
         validUntil: Math.floor(Date.now() / 1000) + 300,
         messages: messages
     };
-
-    console.log('tx', JSON.stringify(transaction, null, 2));
-    console.log('messages', transaction.messages.map(m => ({
-        address: m.address,
-        amount: m.amount,
-        stateInitLen: m.stateInit?.length,
-        payloadLen: m.payload?.length,
-    })));
 
     try {
         const result = await tonConnectUI.sendTransaction(transaction);
