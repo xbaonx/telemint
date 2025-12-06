@@ -222,6 +222,14 @@ export async function deployJetton(
         messages: messages
     };
 
+    console.log('tx', JSON.stringify(transaction, null, 2));
+    console.log('messages', transaction.messages.map(m => ({
+        address: m.address,
+        amount: m.amount,
+        stateInitLen: m.stateInit?.length,
+        payloadLen: m.payload?.length,
+    })));
+
     try {
         const result = await tonConnectUI.sendTransaction(transaction);
         return {
